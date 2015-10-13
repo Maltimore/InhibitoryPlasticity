@@ -4,13 +4,13 @@ import matplotlib.pyplot as plt
 start_scope()
 
 ### PARAMETERS ################################################################
-NE = 1000           # Number of excitatory cells
-NI = NE/4           # Number of inhibitory cells
-tau_ampa = 5.0*ms   # Glutamatergic synaptic time constant
-tau_gaba = 10.0*ms  # GABAergic synaptic time constant
-epsilon = 0.02      # Sparseness of synaptic connections
-tau_stdp = 20*ms    # STDP time constant
-simtime = 300*ms    # Simulation time
+NE = 1000            # Number of excitatory cells
+NI = NE/4            # Number of inhibitory cells
+tau_ampa = 5.0*ms    # Glutamatergic synaptic time constant
+tau_gaba = 10.0*ms   # GABAergic synaptic time constant
+epsilon = 0.02       # Sparseness of synaptic connections
+tau_stdp = 20*ms     # STDP time constant
+simtime = 300*ms     # Simulation time
 
 gl = 10.0*nsiemens   # Leak conductance
 el = -60*mV          # Resting potential
@@ -18,8 +18,6 @@ er = -80*mV          # Inhibitory reversal potential
 vt = -50.*mV         # Spiking threshold
 memc = 200.0*pfarad  # Membrane capacitance
 bgcurrent = 200*pA   # External current
-gmax = 100           # Maximum inhibitory weight
-eta = 0
 
 ### NEURONS ###################################################################
 print("Creating neurons..")
@@ -28,7 +26,6 @@ dv/dt=(-gl*(v-el)-(g_ampa*v+g_gaba*(v-er))+bgcurrent)/memc
         : volt (unless refractory)
 dg_ampa/dt = -g_ampa/tau_ampa : siemens
 dg_gaba/dt = -g_gaba/tau_gaba : siemens
-cumulative_inh_spikes : 1 (shared)
 '''
 
 neurons = NeuronGroup(NE+NI, model=eqs_neurons, threshold='v > vt',
@@ -45,13 +42,10 @@ con_ii = Synapses(Pi, Pi, pre='g_gaba += 3*nS', connect='rand()<epsilon')
 
 ### PLASTIC SYNAPSES ##########################################################
 print("Creating plastic synapses..")
-eqs_stdp_inhib = '''
-w : 1
-cumulative_spikes : 1 (shared)
-pre_spikes_last_second : 1 
-'''
 con_ei = Synapses(Pi, Pe,
-                  model=eqs_stdp_inhib,
+                  model='''w : 1
+                           pre_spikes_last_second : 1 
+                           ''',
                   pre='''pre_spikes_last_second += 1.
                          g_gaba += w*nS
                          w += 1e-11                      
@@ -59,7 +53,7 @@ con_ei = Synapses(Pi, Pe,
                   connect='rand()<epsilon',
                   namespace={"cum_spikes": 0})
 con_ei.w = 3
-con_ei.cumulative_spikes = 0
+con_ei.pre_spikes_last_second = 0
 con_ei.run_regularly("""pre_spikes_last_second = 0""", dt=1000*ms)
 
 ### MONITORS ##################################################################
@@ -68,7 +62,6 @@ StateMon = StateMonitor(con_ei, ['w', 'pre_spikes_last_second'], record=0)
 SpikeMon = SpikeMonitor(neurons)
 excStateMon = StateMonitor(Pe, "v", record=0)
 inhStateMon = StateMonitor(Pi, "v", record=0)
-#cum_Spike = StateMonitor(con_ei, con_ei.namespace["cum_spikes"], record=True)
 
 ### ARBITRARY PYTHON CODE #####################################################
 @network_operation(dt=100*ms)
