@@ -1,10 +1,10 @@
 from brian2 import *
 import numpy as np
 import matplotlib.pyplot as plt
+start_scope()
 
-
-### PARAMETERS ########################################################
-NE = 400            # Number of excitatory cells
+### PARAMETERS ################################################################
+NE = 1000           # Number of excitatory cells
 NI = NE/4           # Number of inhibitory cells
 tau_ampa = 5.0*ms   # Glutamatergic synaptic time constant
 tau_gaba = 10.0*ms  # GABAergic synaptic time constant
@@ -22,7 +22,7 @@ gmax = 100           # Maximum inhibitory weight
 eta = 0
 
 ### NEURONS ###################################################################
-print("Creating Network components..")
+print("Creating neurons..")
 eqs_neurons='''
 dv/dt=(-gl*(v-el)-(g_ampa*v+g_gaba*(v-er))+bgcurrent)/memc : volt (unless refractory)
 dg_ampa/dt = -g_ampa/tau_ampa : siemens
@@ -32,45 +32,46 @@ neurons = NeuronGroup(NE+NI, model=eqs_neurons, threshold='v > vt',
                       reset='v=el', refractory=5*ms)
 Pe = neurons[:NE]
 Pi = neurons[NE:]
-neurons.v = el + 10*mV
+neurons.v = np.random.uniform(el, vt, len(neurons))*volt # set neurons to resting potential
 
 ### NONPLASTIC SYNAPSES #######################################################
-print("Creating nonplastic synapses")
+print("Creating nonplastic synapses..")
 con_e = Synapses(Pe, neurons, pre='g_ampa += 0.3*nS', connect='rand()<epsilon')
 con_ii = Synapses(Pi, Pi, pre='g_gaba += 3*nS', connect='rand()<epsilon')
 
 ### PLASTIC SYNAPSES ##########################################################
-print("Adding inhibitory to excitatory synapses..")
+print("Creating plastic synapses..")
 eqs_stdp_inhib = '''
 w : 1
 pre_spikes_last_second : 1 
 '''
-con_ei = Synapses(network_dict["Pi"],
-                  network_dict["Pe"],
+con_ei = Synapses(Pi, Pe,
                   model=eqs_stdp_inhib,
                   pre='''pre_spikes_last_second += 1.
                          g_gaba += w*nS
                          w += 1e-11''',
                   connect='rand()<epsilon')
-con_ei.w = 300
+con_ei.w = 3
 con_ei.run_regularly("""pre_spikes_last_second = 0""", dt=1000*ms)
 
 ### MONITORS ##################################################################
+print("Setting up Monitors..")
 StateMon = StateMonitor(con_ei, ['w', 'pre_spikes_last_second'], record=0)
-SpikeMon = SpikeMonitor(network_dict["neurons"])
-VStateMon = StateMonitor(network_dict["Pi"], 'v', record=0)
+SpikeMon = SpikeMonitor(neurons)
+excStateMon = StateMonitor(Pe, "v", record=0)
+inhStateMon = StateMonitor(Pi, "v", record=0)
+
 
 ### NETWORK ###################################################################
 print("Creating Network..")
-MyNet = Network(neurons, Pe, Pi, con_e, con_ii, con_ei, StateMon, VStateMon,
-                SpikeMon, MyNet)
+MyNet = Network(neurons, Pe, Pi, con_e, con_ii, con_ei, StateMon, inhStateMon,
+                excStateMon, SpikeMon)
 
 ### SIMULATION ################################################################
 print("Running simulation..")
 MyNet.run(simtime, report="stdout")
 
 ### PLOTTING ##################################################################
-
 # spikes
 plt.figure()
 plt.plot(SpikeMon.t/ms, SpikeMon.i, '.k')
@@ -93,7 +94,9 @@ plt.xlim([-10, np.amax(StateMon.t/ms)])
 plt.ylim([0, np.amax(StateMon.pre_spikes_last_second)+1])
 
 plt.figure()
-plt.plot(VStateMon.t/ms, VStateMon.v.T)
+plt.plot(inhStateMon.t/ms, inhStateMon.v.T/volt, label="inh #1")
+plt.plot(excStateMon.t/ms, excStateMon.v.T/volt, label="exc #1")
 plt.xlabel("time [ms]")
 plt.ylabel("Voltage")
-plt.title("Voltage in inhibitory neuron #1")
+plt.legend()
+plt.title("Voltage traces")
