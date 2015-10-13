@@ -24,15 +24,19 @@ eta = 0
 ### NEURONS ###################################################################
 print("Creating neurons..")
 eqs_neurons='''
-dv/dt=(-gl*(v-el)-(g_ampa*v+g_gaba*(v-er))+bgcurrent)/memc : volt (unless refractory)
+dv/dt=(-gl*(v-el)-(g_ampa*v+g_gaba*(v-er))+bgcurrent)/memc
+        : volt (unless refractory)
 dg_ampa/dt = -g_ampa/tau_ampa : siemens
 dg_gaba/dt = -g_gaba/tau_gaba : siemens
+cumulative_inh_spikes : 1 (shared)
 '''
+
 neurons = NeuronGroup(NE+NI, model=eqs_neurons, threshold='v > vt',
-                      reset='v=el', refractory=5*ms)
+                      reset="""v=el""",
+                      refractory=5*ms)
 Pe = neurons[:NE]
 Pi = neurons[NE:]
-neurons.v = np.random.uniform(el, vt, len(neurons))*volt # set neurons to resting potential
+neurons.v = np.random.uniform(el, vt, len(neurons))*volt 
 
 ### NONPLASTIC SYNAPSES #######################################################
 print("Creating nonplastic synapses..")
@@ -43,15 +47,19 @@ con_ii = Synapses(Pi, Pi, pre='g_gaba += 3*nS', connect='rand()<epsilon')
 print("Creating plastic synapses..")
 eqs_stdp_inhib = '''
 w : 1
+cumulative_spikes : 1 (shared)
 pre_spikes_last_second : 1 
 '''
 con_ei = Synapses(Pi, Pe,
                   model=eqs_stdp_inhib,
                   pre='''pre_spikes_last_second += 1.
                          g_gaba += w*nS
-                         w += 1e-11''',
-                  connect='rand()<epsilon')
+                         w += 1e-11                      
+                         ''',
+                  connect='rand()<epsilon',
+                  namespace={"cum_spikes": 0})
 con_ei.w = 3
+con_ei.cumulative_spikes = 0
 con_ei.run_regularly("""pre_spikes_last_second = 0""", dt=1000*ms)
 
 ### MONITORS ##################################################################
@@ -60,13 +68,19 @@ StateMon = StateMonitor(con_ei, ['w', 'pre_spikes_last_second'], record=0)
 SpikeMon = SpikeMonitor(neurons)
 excStateMon = StateMonitor(Pe, "v", record=0)
 inhStateMon = StateMonitor(Pi, "v", record=0)
+#cum_Spike = StateMonitor(con_ei, con_ei.namespace["cum_spikes"], record=True)
 
+### ARBITRARY PYTHON CODE #####################################################
+@network_operation(dt=100*ms)
+def global_update():
+    cum_sum = np.sum(con_ei.pre_spikes_last_second)
+    print("cumulative sum is: " + str(cum_sum))
 
 ### NETWORK ###################################################################
 print("Creating Network..")
 MyNet = Network(neurons, Pe, Pi, con_e, con_ii, con_ei, StateMon, inhStateMon,
-                excStateMon, SpikeMon)
-
+                excStateMon, SpikeMon, global_update)
+    
 ### SIMULATION ################################################################
 print("Running simulation..")
 MyNet.run(simtime, report="stdout")
