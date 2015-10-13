@@ -3,6 +3,26 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 def create_neural_components():
+    # Network model parameters
+    NE = 400            # Number of excitatory cells
+    NI = NE/4           # Number of inhibitory cells
+    tau_ampa = 5.0*ms   # Glutamatergic synaptic time constant
+    tau_gaba = 10.0*ms  # GABAergic synaptic time constant
+    epsilon = 0.02      # Sparseness of synaptic connections
+    tau_stdp = 20*ms    # STDP time constant
+    simtime = 300*ms    # Simulation time
+    
+    # Neuron model
+    gl = 10.0*nsiemens   # Leak conductance
+    el = -60*mV          # Resting potential
+    er = -80*mV          # Inhibitory reversal potential
+    vt = -50.*mV         # Spiking threshold
+    memc = 200.0*pfarad  # Membrane capacitance
+    bgcurrent = 200*pA   # External current
+    gmax = 100           # Maximum inhibitory weight
+    eta = 0
+
+    print("Creating Network components..")
     eqs_neurons='''
         dv/dt=(-gl*(v-el)-(g_ampa*v+g_gaba*(v-er))+bgcurrent)/memc : volt (unless refractory)
         dg_ampa/dt = -g_ampa/tau_ampa : siemens
@@ -15,50 +35,28 @@ def create_neural_components():
     con_e = Synapses(Pe, neurons, pre='g_ampa += 0.3*nS', connect='rand()<epsilon')
     con_ii = Synapses(Pi, Pi, pre='g_gaba += 3*nS', connect='rand()<epsilon')
     neurons.v = el + 10*mV
-    network_dict = dict(neurons=neurons,
-                        Pe=Pe,
-                        Pi=Pi,
-                        con_e=con_e,
-                        con_ii=con_ii)
-    print("Done creating the network components.")
-    return network_dict
-
-def create_network_from_components(network_dict):
-    MyNet = Network()
-    for key in network_dict:
-        MyNet.add(network_dict[key])
-    print("Added components to network.")
-    return MyNet
     
-# Network model parameters
-NE = 400            # Number of excitatory cells
-NI = NE/4           # Number of inhibitory cells
-tau_ampa = 5.0*ms   # Glutamatergic synaptic time constant
-tau_gaba = 10.0*ms  # GABAergic synaptic time constant
-epsilon = 0.02      # Sparseness of synaptic connections
-tau_stdp = 20*ms    # STDP time constant
-simtime = 300*ms    # Simulation time
+    print("Adding inhibitory to excitatory connections..")
+    eqs_stdp_inhib = '''
+        w : 1
+        pre_spikes_last_second : 1 
+        '''
+    con_ei = Synapses(network_dict["Pi"],
+                      network_dict["Pe"],
+                      model=eqs_stdp_inhib,
+                      pre='''pre_spikes_last_second += 1.
+                             g_gaba += w*nS
+                             w += 1e-11''',
+                      connect='rand()<epsilon')
+    con_ei.w = 300
+    con_ei.run_regularly("""pre_spikes_last_second = 0""", dt=1000*ms)
 
-# Neuron model
-gl = 10.0*nsiemens   # Leak conductance
-el = -60*mV          # Resting potential
-er = -80*mV          # Inhibitory reversal potential
-vt = -50.*mV         # Spiking threshold
-memc = 200.0*pfarad  # Membrane capacitance
-bgcurrent = 200*pA   # External current
-gmax = 100           # Maximum inhibitory weight
-eta = 0
+    print("Creating Network..")
+    MyNet = Network(neurons, Pe, Pi, con_e, con_ii, con_ei, StateMon, VStateMon, SpikeMon, MyNet)
 
-# create network
-if not 'MyNet' in locals():
-    # check whether the network was already created
-    print("Creating new network..")    
-    network_dict = create_neural_components()
-    MyNet = create_network_from_components(network_dict)
-#    MyNet.store("initial_state")
-else:
-    print("Network found, reinitializing..")    
-    MyNet.restore("initial_state")
+    return neurons, Pe, Pi, con_e, con_ii, con_ei, StateMon, VStateMon, SpikeMon, MyNet
+  
+neurons, Pe, Pi, con_e, con_ii, con_ei, StateMon, VStateMon, SpikeMon, MyNet = create_neural_components()
     
 
 print("Adding inhibitory to excitatory connections..")
