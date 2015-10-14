@@ -4,21 +4,23 @@ import matplotlib.pyplot as plt
 start_scope()
 
 ### PARAMETERS ################################################################
-NE = 400               # Number of excitatory cells
-NI = NE/4               # Number of inhibitory cells
+Ntot = 10000
+NE = int(Ntot * 4/5)  # Number of excitatory cells
+NI = int(Ntot / 5)      # Number of inhibitory cells
 tau_ampa = 5.0*ms       # Glutamatergic synaptic time constant
 tau_gaba = 10.0*ms      # GABAergic synaptic time constant
 epsilon = 0.02          # Sparseness of synaptic connections
 tau_stdp = 20*ms        # STDP time constant
-simtime = 700*ms        # Simulation time
-rate_interval = 200     # bin size to compute firing rate
-
+simtime = 10000*ms       # Simulation time
+rate_interval = 200*ms  # bin size to compute firing rate
 gl = 10.0*nS            # Leak conductance
 el = -60*mV             # Resting potential
 er = -80*mV             # Inhibitory reversal potential
 vt = -50.*mV            # Spiking threshold
 memc = 200.0*pfarad     # Membrane capacitance
 bgcurrent = 200*pA      # External current
+scaling_factor = np.sqrt(10000 / Ntot)
+eta = .05
 
 ### VARIABLE DECLARATIONS #####################################################
 firing_rate_list = []
@@ -46,19 +48,21 @@ neurons.v = np.random.uniform(el, vt, len(neurons))*volt
 
 ### NONPLASTIC SYNAPSES #######################################################
 print("Creating nonplastic synapses..")
-con_e = Synapses(Pe, neurons, pre='g_ampa += 0.3*nS', connect='rand()<epsilon')
-con_ii = Synapses(Pi, Pi, pre='g_gaba += 3*nS', connect='rand()<epsilon')
+con_e = Synapses(Pe, neurons, pre='g_ampa += 0.3*scaling_factor*nS',
+                 connect='rand()<epsilon')
+con_ii = Synapses(Pi, Pi, pre='g_gaba += 3*scaling_factor*nS',
+                  connect='rand()<epsilon')
 
 ### PLASTIC SYNAPSES ##########################################################
 print("Creating plastic synapses..")
 con_ei = Synapses(Pi, Pe,
                   model='''w : 1
                            ''',
-                  pre='''g_gaba += w*nS
+                  pre='''g_gaba += w*scaling_factor*nS
                          w += 1e-11                      
                          ''',
                   connect='rand()<epsilon')
-con_ei.w = 300
+con_ei.w = 3
 
 ### MONITORS ##################################################################
 print("Setting up Monitors..")
@@ -69,17 +73,17 @@ excStateMon = StateMonitor(Pe, "v", record=0)
 inhStateMon = StateMonitor(Pi, "v", record=0)
 
 ### ARBITRARY PYTHON CODE #####################################################
-@network_operation(dt=rate_interval*ms)
+@network_operation(dt=rate_interval)
 def compute_inh_firing_rate(t):
-    print("compute_firing_rate called at t = " + str(t))
     t = t/ms
     spike_times = inhSpikeMon.t/ms
     if t == 0:
         # if this is t = 0, skip the computation
         return
-    firing_rate = get_n_of_spikes(spike_times, t, rate_interval)/     \
-                  (rate_interval / 1000 * NI)
+    firing_rate = get_n_of_spikes(spike_times, t, rate_interval/ms)/     \
+                  (rate_interval / second * NI)
     firing_rate_list.append([t, firing_rate])
+    con_ei.w += eta * (firing_rate - 15)
     
 ### NETWORK ###################################################################
 print("Creating Network..")
@@ -110,13 +114,6 @@ plt.xlabel("Time (ms)")
 plt.ylabel("Neuron index")
 plt.title("Spikes in the first " + str(show_n) + " inhibitory neurons")
 
-# synaptic weight
-#plt.figure()
-#plt.plot(StateMon.t/ms, StateMon.w.T)
-#plt.xlabel("time [ms]")
-#plt.ylabel("weight")
-#plt.title("Synaptic weight of inhibitory synapse #1")
-
 # Voltage traces
 plt.figure()
 plt.plot(inhStateMon.t/ms, inhStateMon.v.T/volt, label="inh #1")
@@ -133,3 +130,5 @@ plt.xlim([0, firing_rate_list[0,-1]])
 plt.xlabel("time [ms]")
 plt.ylabel("firing rate [Hz]")
 plt.title("Average inhibitory firing rate over time")
+plt.show()
+
