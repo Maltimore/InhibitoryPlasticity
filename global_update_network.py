@@ -4,17 +4,19 @@ import matplotlib.pyplot as plt
 import plot_script
 import imp
 imp.reload(plot_script)
+import scipy.ndimage.filters as filters
 start_scope()
 
 ### PARAMETERS ################################################################
-Ntot = 10001
-NE = int(Ntot * 4/5)  # Number of excitatory cells
+Ntot = 10000
+NE = int(Ntot * 4/5)    # Number of excitatory cells
 NI = int(Ntot / 5)      # Number of inhibitory cells
 tau_ampa = 5.0*ms       # Glutamatergic synaptic time constant
 tau_gaba = 10.0*ms      # GABAergic synaptic time constant
 epsilon = 0.02          # Sparseness of synaptic connections
 tau_stdp = 20*ms        # STDP time constant
-simtime = 1000*ms       # Simulation time
+simtime = 5000*ms       # Simulation time
+dt = .1*ms              # Simulation time step
 rate_interval = 200*ms  # bin size to compute firing rate
 gl = 10.0*nS            # Leak conductance
 el = -60*mV             # Resting potential
@@ -22,17 +24,11 @@ er = -80*mV             # Inhibitory reversal potential
 vt = -50.*mV            # Spiking threshold
 memc = 200.0*pfarad     # Membrane capacitance
 bgcurrent = 200*pA      # External current
+eta = .1                # Learning rate
+rho_0 = 15              # Target firing rate
+tau_smoothing = 100*ms  # SD for gaussian smoothing kernel of firing rate
 scaling_factor = np.sqrt(10000 / Ntot)
-eta = .03               # Learning rate
 
-### VARIABLE DECLARATIONS #####################################################
-firing_rate_list = []
-
-### FUNCTIONS #################################################################
-def get_n_of_spikes(spike_time_vec, t, intervallength):
-    n_spikes = len(spike_time_vec[(t-intervallength < spike_time_vec) & \
-                                  (spike_time_vec < t)])
-    return n_spikes
 ### NEURONS ###################################################################
 print("Creating neurons..")
 eqs_neurons='''
@@ -65,7 +61,7 @@ con_ei = Synapses(Pi, Pe,
                          w += 1e-11                      
                          ''',
                   connect='rand()<epsilon')
-con_ei.w = 3
+con_ei.w = 10
 
 ### MONITORS ##################################################################
 print("Setting up Monitors..")
@@ -80,14 +76,21 @@ rateMon = PopulationRateMonitor(Pi)
 @network_operation(dt=rate_interval)
 def compute_inh_firing_rate(t):
     t = t/ms
-    spike_times = inhSpikeMon.t/ms
     if t == 0:
         # if this is t = 0, skip the computation
         return
-    firing_rate = get_n_of_spikes(spike_times, t, rate_interval/ms)/     \
-                  (rate_interval / second * NI)
-    firing_rate_list.append([t, firing_rate])
-    con_ei.w += eta * (firing_rate - 15)
+    time = rateMon.t / ms
+    timemask = time > (t - 1000)    
+    rateMonrate = rateMon.rate / Hz
+    rateMonrate = rateMonrate[timemask] # cut out rates of last 1000 ms only    
+    firing_rate = filters.gaussian_filter1d(rateMonrate,
+                                            tau_smoothing/dt, mode="reflect")
+    firing_rate = np.average(firing_rate[-10:])
+    con_ei.w += eta * (firing_rate - rho_0)
+    print("Time is: " + str(t) + " ms")    
+    print("The firing rate was: " + str(firing_rate))
+    print("Delta w ist: " + str(eta*(firing_rate - rho_0)))
+    print("")
     
 ### NETWORK ###################################################################
 print("Creating Network..")
@@ -98,12 +101,9 @@ MyNet = Network(neurons, Pe, Pi, con_e, con_ii, con_ei, inhStateMon,
 ### SIMULATION ################################################################
 print("Running simulation..")
 MyNet.run(simtime, report="stdout")
-
+print("Done simulating.")
 ### PLOTTING ##################################################################
-# make python list to np array (first row is time, second row is firing rate)
-firing_rate_list = np.array(firing_rate_list).T
-
 plot_script.create_plots(SpikeMon, inhSpikeMon, excStateMon, inhStateMon,
-                         firing_rate_list)
+                         rateMon, dt)
 
 

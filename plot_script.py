@@ -1,9 +1,10 @@
 from brian2 import *
 import numpy as np
 import matplotlib.pyplot as plt
+import scipy.ndimage.filters as filters
 
 def create_plots(SpikeMon, inhSpikeMon, excStateMon, inhStateMon,
-                 firing_rate_list):
+                 rateMon, dt):
     print("Creating plots..")
     # spikes
     plt.figure()
@@ -29,16 +30,11 @@ def create_plots(SpikeMon, inhSpikeMon, excStateMon, inhStateMon,
     plt.legend()
     plt.title("Voltage traces")
     
-    compute_firing_rate(SpikeMon.t)
-    # Firing rate
+    tau = 100 * ms
+    firing_rate = filters.gaussian_filter1d(rateMon.rate/Hz,
+                                            tau/dt, mode='reflect')
     plt.figure()
-    plt.plot(firing_rate_list[0,:], firing_rate_list[1,:])
-    plt.xlim([0, firing_rate_list[0,-1]])
+    plt.plot(rateMon.t/ms, firing_rate)
     plt.xlabel("time [ms]")
     plt.ylabel("firing rate [Hz]")
-    plt.title("Average inhibitory firing rate over time")
-    plt.show()
-    
-def compute_firing_rate(spikevector):
-    # convert spike times to integer
-    pass
+    plt.title("Filtered with gaussian kernel (SD = " + str(tau) + ")")
