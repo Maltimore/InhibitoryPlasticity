@@ -1,20 +1,17 @@
 from brian2 import *
 import numpy as np
 import matplotlib.pyplot as plt
-import plot_script
-import imp
-imp.reload(plot_script)
 start_scope()
 
 ### PARAMETERS ################################################################
-Ntot = 10001
+Ntot = 10000
 NE = int(Ntot * 4/5)  # Number of excitatory cells
 NI = int(Ntot / 5)      # Number of inhibitory cells
 tau_ampa = 5.0*ms       # Glutamatergic synaptic time constant
 tau_gaba = 10.0*ms      # GABAergic synaptic time constant
 epsilon = 0.02          # Sparseness of synaptic connections
 tau_stdp = 20*ms        # STDP time constant
-simtime = 1000*ms       # Simulation time
+simtime = 10000*ms       # Simulation time
 rate_interval = 200*ms  # bin size to compute firing rate
 gl = 10.0*nS            # Leak conductance
 el = -60*mV             # Resting potential
@@ -23,7 +20,7 @@ vt = -50.*mV            # Spiking threshold
 memc = 200.0*pfarad     # Membrane capacitance
 bgcurrent = 200*pA      # External current
 scaling_factor = np.sqrt(10000 / Ntot)
-eta = .03               # Learning rate
+eta = .05
 
 ### VARIABLE DECLARATIONS #####################################################
 firing_rate_list = []
@@ -74,7 +71,6 @@ SpikeMon = SpikeMonitor(neurons)
 inhSpikeMon = SpikeMonitor(Pi)
 excStateMon = StateMonitor(Pe, "v", record=0)
 inhStateMon = StateMonitor(Pi, "v", record=0)
-rateMon = PopulationRateMonitor(Pi)
 
 ### ARBITRARY PYTHON CODE #####################################################
 @network_operation(dt=rate_interval)
@@ -93,7 +89,7 @@ def compute_inh_firing_rate(t):
 print("Creating Network..")
 MyNet = Network(neurons, Pe, Pi, con_e, con_ii, con_ei, inhStateMon,
                 excStateMon, SpikeMon, compute_inh_firing_rate,
-                inhSpikeMon, rateMon)
+                inhSpikeMon)
     
 ### SIMULATION ################################################################
 print("Running simulation..")
@@ -103,7 +99,36 @@ MyNet.run(simtime, report="stdout")
 # make python list to np array (first row is time, second row is firing rate)
 firing_rate_list = np.array(firing_rate_list).T
 
-plot_script.create_plots(SpikeMon, inhSpikeMon, excStateMon, inhStateMon,
-                         firing_rate_list)
+# spikes
+plt.figure()
+plt.plot(SpikeMon.t/ms, SpikeMon.i, '.k')
+plt.xlabel("Time (ms)")
+plt.ylabel("Neuron index")
 
+#inhibitory spikes
+show_n = 20
+plt.figure()
+plt.plot(inhSpikeMon.t/ms, inhSpikeMon.i, '.k')
+plt.ylim([0, show_n])
+plt.xlabel("Time (ms)")
+plt.ylabel("Neuron index")
+plt.title("Spikes in the first " + str(show_n) + " inhibitory neurons")
+
+# Voltage traces
+plt.figure()
+plt.plot(inhStateMon.t/ms, inhStateMon.v.T/volt, label="inh #1")
+plt.plot(excStateMon.t/ms, excStateMon.v.T/volt, label="exc #1")
+plt.xlabel("time [ms]")
+plt.ylabel("Voltage")
+plt.legend()
+plt.title("Voltage traces")
+
+# Firing rate
+plt.figure()
+plt.plot(firing_rate_list[0,:], firing_rate_list[1,:])
+plt.xlim([0, firing_rate_list[0,-1]])
+plt.xlabel("time [ms]")
+plt.ylabel("firing rate [Hz]")
+plt.title("Average inhibitory firing rate over time")
+plt.show()
 
