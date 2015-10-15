@@ -28,6 +28,9 @@ eta = .1                # Learning rate
 rho_0 = 15              # Target firing rate
 tau_smoothing = 100*ms  # SD for gaussian smoothing kernel of firing rate
 scaling_factor = np.sqrt(10000 / Ntot)
+# control parameters
+do_plotting = True
+do_global_update = True
 
 ### NEURONS ###################################################################
 print("Creating neurons..")
@@ -76,7 +79,7 @@ rateMon = PopulationRateMonitor(Pi)
 @network_operation(dt=rate_interval)
 def compute_inh_firing_rate(t):
     t = t/ms
-    if t == 0:
+    if t == 0 or not do_global_update:
         # if this is t = 0, skip the computation
         return
     time = rateMon.t / ms
@@ -103,7 +106,9 @@ print("Running simulation..")
 MyNet.run(simtime, report="stdout")
 print("Done simulating.")
 ### PLOTTING ##################################################################
-plot_script.create_plots(SpikeMon, inhSpikeMon, excStateMon, inhStateMon,
-                         rateMon, dt)
-
+if do_plotting:
+    plot_script.create_plots(SpikeMon, inhSpikeMon, excStateMon, inhStateMon,
+                             rateMon, dt)
+else:
+    print("Plotting was not desired.")
 
