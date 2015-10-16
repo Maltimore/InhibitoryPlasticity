@@ -32,8 +32,8 @@ scaling_factor = np.sqrt(10000 / Ntot)
 do_plotting = False
 do_global_update = False
 
-
-weights = np.array([1, 2, 3, 4, 5, 6, 7, 8, 9, 10])
+stepsize = .2
+weights = np.arange(0, 10, stepsize)
 firing_rate_vec = np.zeros(len(weights))
 for idx, current_weight in enumerate(weights):
     start_scope()
@@ -125,3 +125,10 @@ for idx, current_weight in enumerate(weights):
     print("Firing rate for weight " + str(current_weight) + " was " +
           str(firing_rate))
     firing_rate_vec[idx] = firing_rate
+    
+plt.figure()
+plt.plot(weights, firing_rate_vec)
+plt.xlabel("inh to exc weight [nS]")
+plt.ylabel("firing rate [Hz]")
+plt.title("Inhibitory population average rate, w stepsize: " + str(stepsize))
+plt.show()
