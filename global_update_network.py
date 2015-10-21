@@ -31,7 +31,8 @@ scaling_factor = np.sqrt(10000 / Ntot)
 
 # control parameters
 do_plotting = True
-do_global_update = True
+do_global_update = False
+do_local_update = True
 
 ### NEURONS ###################################################################
 print("Creating neurons..")
@@ -90,7 +91,22 @@ def global_update(t):
                          rate_interval, simtime,
                          t_min = t - rate_interval, t_max = t)
     con_ei.w += eta * (firing_rate - rho_0)
-    return
+
+@network_operation(dt=rate_interval)
+def local_update(t):
+    if t/ms == 0:
+        # if this is t = 0, skip the computation
+        return
+    _, firing_rates = mytools.estimate_single_firing_rates(inhSpikeMon, 
+                         rate_interval, simtime,
+                         t_min = t - rate_interval, t_max = t)
+    for neuron_idx in np.arange(NI):
+        print("computing delta_w", flush=True)
+        delta_w = eta * (firing_rates[neuron_idx] - rho_0)
+        print("updating synapse for neuron " + str(neuron_idx), flush=True)
+        con_ei.w[neuron_idx,:,:] += delta_w
+
+
 
 ### NETWORK ###################################################################
 print("Creating Network..")
@@ -98,6 +114,8 @@ MyNet = Network(neurons, Pe, Pi, con_e, con_ii, con_ei, SpikeMon, inhSpikeMon,
                 wMon)
 if do_global_update:
     MyNet.add(global_update)
+if do_local_update:
+    MyNet.add(local_update)
     
 ### SIMULATION ################################################################
 print("Running simulation..")
