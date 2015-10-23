@@ -28,16 +28,19 @@ def estimate_pop_firing_rate(SpikeMon, rate_interval, simtime, t_min = 0*ms,
 
 def estimate_single_firing_rates(SpikeMon, rate_interval, simtime,
                                  t_min = "t_max - rate_interval",
-                                 t_max = "end of sim"):
+                                 t_max = "end of sim",
+                                 N_neurons = "all"):
     if t_max == "end of sim":
         t_max = simtime
     if t_min == "t_max - rate_interval":
         t_min = t_max - rate_interval
-    N_neurons = len(SpikeMon.spike_trains())
+    if N_neurons == "all":
+        N_neurons = len(SpikeMon.spike_trains())
+    
     spike_times = SpikeMon.t
     upper_bound_times = np.arange((t_min + rate_interval)/ms, t_max/ms + 1,
                                   rate_interval/ms) * ms
-    rate_mat = np.zeros((len(upper_bound_times), N_neurons))
+    rate_mat = np.zeros((N_neurons, len(upper_bound_times)))
     for time_idx, upper_bound in enumerate(upper_bound_times):
         for neuron_idx in np.arange(N_neurons):
             # extract spike times of just one neuron
@@ -48,7 +51,7 @@ def estimate_single_firing_rates(SpikeMon, rate_interval, simtime,
             # estimate firing rate by dividing number of spikes by window time
             firing_rate = len(single_spike_times) / (rate_interval/second)
             # save firing rate in matrix
-            rate_mat[time_idx, neuron_idx] = firing_rate
+            rate_mat[neuron_idx, time_idx] = firing_rate
   
     # in case the firing rates were computed for just one time interval, delete
     # the superfluous axis
@@ -67,38 +70,57 @@ def create_connectivity_mat(sigma_c = 500,
                             x_post = 4,
                             fixed_in_degree = 0.02,
                             save_to_file = False,
+                            reload_from_file = True,
                             filename = "no_name_specified",
                             dir_name = "connectivity_matrices"):
     
+    if reload_from_file:
+        if os.path.exists(dir_name + "/" + filename):
+            print("Loading connecitivity matrix from file " \
+                  + filename + "..", end="", flush=True)                        
+            conn_mat = pickle.load(open(dir_name + "/" + filename, "rb"))            
+            print(" Done.", flush=True)            
+            return conn_mat
+
     pre_idxes = np.arange(N_pre)
     post_idxes = np.arange(N_post)
-    post_positions = post_idxes * x_post
+    pre_positions = pre_idxes * x_pre
     
     k_in = int(fixed_in_degree * N_pre)
-    pre_neurons = np.zeros(k_in * N_pre)
-    post_neurons = np.zeros(k_in * N_pre)
+    pre_neurons = np.zeros(k_in * N_post)
+    post_neurons = np.zeros(k_in * N_post)
     
-    for pre_idx in pre_idxes:
+    for post_idx in post_idxes:
         # draw from an exponential distribution (add 1 so no self projections)
-        rand_post_positions = np.random.exponential(scale=sigma_c, size=k_in) + 1
-        rand_post_positions *= (np.random.randint(0, 2, size=k_in)*2 - 1)
-        rand_post_positions += pre_idx * x_pre
-        post_neurons_helper = np.zeros(k_in)
-        for pos_idx, curr_post_pos in enumerate(rand_post_positions):
-            while curr_post_pos > N_post * x_post:
-                curr_post_pos -= N_post * x_post
-            while curr_post_pos * x_post < 0:
-                curr_post_pos += N_post * x_post
-            post_neurons_helper[pos_idx] = _find_nearest(post_positions,
-                                                        curr_post_pos)
-        pre_neurons[k_in*pre_idx:k_in*(pre_idx+1)] = \
-            np.ones(k_in) * pre_idx
-        post_neurons[k_in*pre_idx:k_in*(pre_idx+1)] = post_neurons_helper
+        rand_pre_positions = np.random.exponential(scale=sigma_c, size=k_in) + 1
+        rand_pre_positions *= np.random.randint(0, 2, size=k_in)*2 - 1
+        rand_pre_positions += post_idx * x_post
+        pre_neurons_helper = np.zeros(k_in)
+        for pos_idx, curr_pre_pos in enumerate(rand_pre_positions):
+            while curr_pre_pos > N_pre * x_pre:
+                curr_pre_pos -= N_pre * x_pre
+            while curr_pre_pos * x_pre < 0:
+                curr_pre_pos += N_pre * x_pre
+            pre_neurons_helper[pos_idx] = _find_nearest(pre_positions,
+                                                        curr_pre_pos)
+        pre_neurons[k_in*post_idx:k_in*(post_idx+1)] = pre_neurons_helper
+        post_neurons[k_in*post_idx:k_in*(post_idx+1)] = \
+            np.ones(k_in) * post_idx
     connectivity_mat = np.vstack((pre_neurons, post_neurons)).astype(int).T
     
     if save_to_file:
         if not os.path.exists(dir_name):
-            os.makedirs(dir_name)            
-        pickle.dump(connectivity_mat, open(dir_name + "/" + filename, "wb" ))
+            os.makedirs(dir_name)
+        if not os.path.exists(dir_name + "/" + filename):
+            print("Saving connecitivity matrix to file " \
+                  + filename + "..", flush=True) 
+            pickle.dump(connectivity_mat,
+                        open(dir_name + "/" + filename, "wb" ))
     
     return connectivity_mat
+
+
+
+
+
+
