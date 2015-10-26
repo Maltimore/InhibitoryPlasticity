@@ -12,11 +12,12 @@ start_scope()
 Ntot = 10000
 NE = int(Ntot * 4/5)      # Number of excitatory cells
 NI = int(Ntot / 5)        # Number of inhibitory cells
+x_NI = int(NE/NI)         # spacing of inh cells
 tau_ampa = 5.0*ms         # Glutamatergic synaptic time constant
 tau_gaba = 10.0*ms        # GABAergic synaptic time constant
 epsilon = 0.02            # Sparseness of synaptic connections
 tau_stdp = 20*ms          # STDP time constant
-simtime = 10000*ms         # Simulation time
+simtime = 30001*ms        # Simulation time
 dt = .1*ms                # Simulation time step
 rate_interval = 500*ms    # bin size to compute firing rate
 gl = 10.0*nS              # Leak conductance
@@ -33,8 +34,10 @@ sigma_s = 100             # sensor width
 fixed_in_degree = .02     # amount of incoming connections
 start_weight = 10         # starting weight for the inh to exc connections
 # a matrix to hold the inh to exc weights as they change over time
+# notice that i'm adding one for the number of columns because of the
+# "fencepost error" (wikipedia it)
 w_holder = np.zeros((int(NE * fixed_in_degree * NI),
-                     int(simtime/rate_interval)))
+                     int(simtime/rate_interval)+1))
 w_holder[:, 0] = start_weight
 
 
@@ -123,7 +126,7 @@ con_ei = Synapses(Pi, Pe,
                          w += 1e-11                      
                          ''')
 con_ei.connect(ei_conn_mat[:,0], ei_conn_mat[:,1])
-con_ei.w = 10
+con_ei.w = 8
 
 ### MONITORS ##################################################################
 print("Setting up Monitors..")
@@ -163,8 +166,11 @@ def local_update(t):
         delta_w = eta * (firing_rates[neuron_idx] - rho_0)
         idxes = ei_conn_mat[:,0] == neuron_idx
         temp_w_holder[idxes] += delta_w
+    # set below 0 weights to zero.
+    temp_w_holder[temp_w_holder < 0] = 0
     con_ei.w = temp_w_holder
     w_holder[:, int(t/rate_interval)] = temp_w_holder
+    print("updating index " + str(int(t/rate_interval)))
 
 
 
