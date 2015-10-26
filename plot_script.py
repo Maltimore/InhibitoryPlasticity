@@ -44,11 +44,7 @@ def create_plots(SpikeMon, inhSpikeMon, rate_interval, w_holder, rho_0,
     times, rates = mytools.estimate_pop_firing_rate(inhSpikeMon, rate_interval,
                                                     simtime)
     w_times = np.hstack((0*ms, times))
-    print(times)    
-    print(w_times)
-    print(avg_w_stream)
-    print(len(w_times))
-    print(len(avg_w_stream))
+
     fig, axes = plt.subplots(2, figsize=(15, 10))
     axes[0].plot(times/second, rate_vector.T, color="red",
                  alpha=.2, linewidth=.3)
