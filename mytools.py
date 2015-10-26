@@ -3,6 +3,16 @@ import numpy as np
 import pickle
 import os
 
+### HELPER FUNCTIONS FOR TOOL FUNCTIONS #######################################
+def _find_nearest(array,value):
+    distances = (np.abs(array-value))
+    idx = np.argmin(distances)
+    return idx
+    
+def _exp_function(x_vec, mu, scale):
+    return 1/scale * np.exp(2* -np.abs(x_vec - mu) / scale)
+
+### TOOL FUNCTIONS ############################################################
 def estimate_pop_firing_rate(SpikeMon, rate_interval, simtime, t_min = 0*ms,
                              t_max = "end of sim"):
     """If t_max - t_min < rate_interval, will still use an entire rate
@@ -57,11 +67,6 @@ def estimate_single_firing_rates(SpikeMon, rate_interval, simtime,
     # the superfluous axis
     rate_mat = rate_mat.squeeze()
     return upper_bound_times, rate_mat
-    
-def _find_nearest(array,value):
-    distances = (np.abs(array-value))
-    idx = np.argmin(distances)
-    return idx
     
 def create_connectivity_mat(sigma_c = 500,
                             N_pre = 8000,

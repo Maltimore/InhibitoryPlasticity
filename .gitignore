@@ -1,3 +1,4 @@
 connectivity_matrices
 __pycache__
 *.~
+*.pyc
