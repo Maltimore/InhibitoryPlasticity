@@ -6,8 +6,8 @@ import matplotlib.pyplot as plt
 
 
 # This script assumes that the simulation has been run before with
-# a simtime of 5000 ms.
-t = 15000*ms
+# a simtime of 10000 ms.
+t = 10000*ms
 
 _, firing_rates = mytools.estimate_single_firing_rates(inhSpikeMon, 
                          rate_interval, simtime,
@@ -61,6 +61,9 @@ plt.title("The rate of this particular window is: " + str(sensor_rate))
 
 
 def rate_sensor(firing_rates, x_NI, sigma_s):
+    """ Compute the firing rates per neuron with an exponential window across
+        the neighboring neurons. The exponential window is paraemtrized by
+        sigma_s, which is the width of the exponential. """
     N_neurons = len(firing_rates)
     # Creating the exponential window and set its maximum over the "middle"
     # (in the vector) neuron. Later we will just take this window and rotate

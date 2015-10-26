@@ -16,7 +16,7 @@ tau_ampa = 5.0*ms         # Glutamatergic synaptic time constant
 tau_gaba = 10.0*ms        # GABAergic synaptic time constant
 epsilon = 0.02            # Sparseness of synaptic connections
 tau_stdp = 20*ms          # STDP time constant
-simtime = 15000*ms         # Simulation time
+simtime = 10000*ms         # Simulation time
 dt = .1*ms                # Simulation time step
 rate_interval = 500*ms    # bin size to compute firing rate
 gl = 10.0*nS              # Leak conductance
@@ -29,6 +29,7 @@ eta = .05                 # Learning rate
 rho_0 = 15                # Target firing rate
 scaling_factor = np.sqrt(10000 / Ntot)
 sigma_c = 100             # connectivity spread
+sigma_s = 100             # sensor width
 fixed_in_degree = .02     # amount of incoming connections
 start_weight = 10         # starting weight for the inh to exc connections
 # a matrix to hold the inh to exc weights as they change over time
@@ -38,7 +39,7 @@ w_holder[:, 0] = start_weight
 
 
 # control parameters
-do_plotting = False
+do_plotting = True
 do_global_update = False
 do_local_update = True
 
@@ -155,6 +156,8 @@ def local_update(t):
     _, firing_rates = mytools.estimate_single_firing_rates(inhSpikeMon, 
                          rate_interval, simtime,
                          t_min = t - rate_interval, t_max = t)
+    firing_rates = mytools.rate_sensor(firing_rates, x_NI, sigma_s)
+    
     temp_w_holder = np.array(con_ei.w)
     for neuron_idx in np.arange(NI):
         delta_w = eta * (firing_rates[neuron_idx] - rho_0)

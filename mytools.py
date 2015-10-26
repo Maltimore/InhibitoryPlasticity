@@ -10,6 +10,17 @@ def _find_nearest(array,value):
     return idx
     
 def _exp_function(x_vec, mu, scale):
+    # catch the case where scale == 0
+    if scale == 0:
+        y_vec = np.zeros(len(x_vec))
+        y_vec[x_vec==mu] = 1
+        return y_vec
+    elif scale == "ininity":
+        # if an infinitely big sensor is desired, return uniform weights
+        y_vec = np.zones(len(x_vec))
+        y_vec /= np.sum(y_vec)
+        return y_vec
+    #else, compute normal exponential function
     return 1/scale * np.exp(2* -np.abs(x_vec - mu) / scale)
 
 ### TOOL FUNCTIONS ############################################################
@@ -124,7 +135,27 @@ def create_connectivity_mat(sigma_c = 500,
     
     return connectivity_mat
 
-
+def rate_sensor(firing_rates, x_NI, sigma_s):
+    """ Compute the firing rates per neuron with an exponential window across
+        the neighboring neurons. The exponential window is paraemtrized by
+        sigma_s, which is the width of the exponential. """
+    N_neurons = len(firing_rates)
+    # Creating the exponential window and set its maximum over the "middle"
+    # (in the vector) neuron. Later we will just take this window and rotate
+    # it according to our needs (according to which neurons firing rate we're
+    # estimating).
+    mu = int(N_neurons/2) * x_NI
+    x_vec = np.arange(N_neurons) * x_NI
+    y_vec = _exp_function(x_vec, mu, sigma_s) * x_NI
+    y_vec /= np.sum(y_vec)
+    
+    sensor_rates = np.zeros(N_neurons)
+    for neuron_idx in np.arange(N_neurons):
+        y_vec_temp = np.roll(y_vec, int(neuron_idx - (mu/x_NI)))
+        
+        sensor_rates[neuron_idx] = np.dot(y_vec_temp, firing_rates)
+    
+    return sensor_rates
 
 
 
