@@ -8,7 +8,7 @@ imp.reload(mytools)
 plot_n_weights = 200
 plot_n_rates = 200
 
-def create_plots(SpikeMon, inhSpikeMon, rate_interval, w_holder, rho_0,
+def create_plots(SpikeMon, inhSpikeMon, rate_interval, rho_0, w_holder,
                  rate_holder, simtime, dt):
     print("Creating plots..")
     N_inh_neurons = len(inhSpikeMon.spike_trains())    
@@ -60,9 +60,7 @@ def create_plots(SpikeMon, inhSpikeMon, rate_interval, w_holder, rho_0,
 
     
     # firing rate plot as matrix
-    _, rate_vector = mytools.estimate_single_firing_rates(inhSpikeMon, 
-                                                          rate_interval,
-                                                          simtime)
+    rate_vector = rate_holder[:, -1]
     matrix_axis = np.floor(np.sqrt(len(rate_vector)))
     rate_vector = rate_vector[:matrix_axis**2]
     rate_mat = np.reshape(rate_vector, (int(np.sqrt(N_inh_neurons)), -1))

@@ -17,8 +17,6 @@ tau_ampa = 5.0*ms         # Glutamatergic synaptic time constant
 tau_gaba = 10.0*ms        # GABAergic synaptic time constant
 epsilon = 0.02            # Sparseness of synaptic connections
 tau_stdp = 20*ms          # STDP time constant
-simtime = 1001*ms        # Simulation time
-dt = .1*ms                # Simulation time step
 rate_interval = 500*ms    # bin size to compute firing rate
 gl = 10.0*nS              # Leak conductance
 el = -60*mV               # Resting potential
@@ -26,13 +24,24 @@ er = -80*mV               # Inhibitory reversal potential
 vt = -50.*mV              # Spiking threshold
 memc = 200.0*pfarad       # Membrane capacitance
 bgcurrent = 200*pA        # External current
+fixed_in_degree = .02     # amount of incoming connections
 eta = .05                 # Learning rate
 rho_0 = 15                # Target firing rate
 scaling_factor = np.sqrt(10000 / Ntot)
+
+### Parameters I'm actually changing ##########################################
+simtime = 30000*ms        # Simulation time
+simtime += 1*ms           # adding one so that things like np.arange create
+                          # a bin for the last interval
+dt = .1*ms                # Simulation time step
 sigma_c = 100             # connectivity spread
 sigma_s = 100             # sensor width
-fixed_in_degree = .02     # amount of incoming connections
-start_weight = 10         # starting weight for the inh to exc connections
+start_weight = 8          # starting weight for the inh to exc connections
+do_plotting = True
+do_global_update = False
+do_local_update = True
+
+### VARIABLE DECLARATIONS #####################################################
 # a matrix to hold the inh to exc weights as they change over time
 # notice that i'm adding one for the number of columns because of the
 # "fencepost error" (wikipedia it)
@@ -40,13 +49,6 @@ w_holder = np.zeros((int(NE * fixed_in_degree * NI),
                      int(simtime/rate_interval)+1))
 w_holder[:, 0] = start_weight
 rate_holder = np.zeros((NI, int(simtime/rate_interval)))
-
-
-
-# control parameters
-do_plotting = True
-do_global_update = False
-do_local_update = True
 
 ### NEURONS ###################################################################
 print("Creating neurons..")
@@ -128,7 +130,7 @@ con_ei = Synapses(Pi, Pe,
                          w += 1e-11                      
                          ''')
 con_ei.connect(ei_conn_mat[:,0], ei_conn_mat[:,1])
-con_ei.w = 8
+con_ei.w = start_weight
 
 ### MONITORS ##################################################################
 print("Setting up Monitors..")
@@ -198,8 +200,8 @@ print("Done simulating.")
 
 ### PLOTTING ##################################################################
 if do_plotting:
-    plot_script.create_plots(SpikeMon, inhSpikeMon, rate_interval, w_holder,
-                             rho_0, rate_holder, simtime, dt)
+    plot_script.create_plots(SpikeMon, inhSpikeMon, rate_interval, rho_0, 
+                             w_holder, rate_holder, simtime, dt)
 else:
     print("Plotting was not desired.")
 
