@@ -85,7 +85,7 @@ def create_connectivity_mat(sigma_c = 500,
                             x_pre = 1,
                             x_post = 4,
                             fixed_in_degree = 0.02,
-                            save_to_file = False,
+                            save_to_file = True,
                             reload_from_file = True,
                             filename = "no_name_specified",
                             dir_name = "connectivity_matrices"):
@@ -97,32 +97,49 @@ def create_connectivity_mat(sigma_c = 500,
             conn_mat = pickle.load(open(dir_name + "/" + filename, "rb"))            
             print(" Done.", flush=True)            
             return conn_mat
-
+    print("Couldn't find connectivity matrices on disk. Creating..", end="",
+          flush=True)
     pre_idxes = np.arange(N_pre)
     post_idxes = np.arange(N_post)
     pre_positions = pre_idxes * x_pre
     
     k_in = int(fixed_in_degree * N_pre)
-    pre_neurons = np.zeros(k_in * N_post)
-    post_neurons = np.zeros(k_in * N_post)
+    all_pre_neurons = np.zeros(k_in * N_post, dtype=int)
+    all_post_neurons = np.zeros(k_in * N_post, dtype=int)
     
     for post_idx in post_idxes:
-        # draw from an exponential distribution (add 1 so no self projections)
-        rand_pre_positions = np.random.exponential(scale=sigma_c, size=k_in) + 1
-        rand_pre_positions *= np.random.randint(0, 2, size=k_in)*2 - 1
-        rand_pre_positions += post_idx * x_post
-        pre_neurons_helper = np.zeros(k_in)
-        for pos_idx, curr_pre_pos in enumerate(rand_pre_positions):
-            while curr_pre_pos > N_pre * x_pre:
-                curr_pre_pos -= N_pre * x_pre
-            while curr_pre_pos * x_pre < 0:
-                curr_pre_pos += N_pre * x_pre
-            pre_neurons_helper[pos_idx] = _find_nearest(pre_positions,
-                                                        curr_pre_pos)
-        pre_neurons[k_in*post_idx:k_in*(post_idx+1)] = pre_neurons_helper
-        post_neurons[k_in*post_idx:k_in*(post_idx+1)] = \
+        # holder variable for the pre neurons for the current post neuron
+        pre_neurons = np.ones(k_in, dtype=int) * -1
+        
+        for pre_idx in np.arange(k_in):
+            # set flag that the chosen neuron will be unacceptable.
+            # flag will be set to true once it passed our checks.        
+            chosen_pre_unacceptable = True
+            
+            while chosen_pre_unacceptable:
+                # draw from an exponential distribution
+                # (add 1 so no self projections)
+                rand_pre_pos = np.random.exponential(scale=sigma_c) + 1
+                rand_pre_pos *= np.random.randint(0, 2)*2 - 1
+                rand_pre_pos += post_idx * x_post
+                
+                while rand_pre_pos > N_pre * x_pre:
+                    rand_pre_pos -= N_pre * x_pre
+                while rand_pre_pos * x_pre < 0:
+                    rand_pre_pos += N_pre * x_pre
+                pre_neuron = _find_nearest(pre_positions, rand_pre_pos)
+                
+                if pre_neuron not in pre_neurons:
+                    pre_neurons[pre_idx] = pre_neuron                
+                    chosen_pre_unacceptable = False
+                    
+    
+        all_pre_neurons[k_in*post_idx:k_in*(post_idx+1)] = pre_neurons
+        all_post_neurons[k_in*post_idx:k_in*(post_idx+1)] = \
             np.ones(k_in) * post_idx
-    connectivity_mat = np.vstack((pre_neurons, post_neurons)).astype(int).T
+    
+    connectivity_mat = np.vstack((all_pre_neurons, all_post_neurons)).T
+    print("Done", flush=True)
     
     if save_to_file:
         if not os.path.exists(dir_name):
@@ -131,7 +148,7 @@ def create_connectivity_mat(sigma_c = 500,
             print("Saving connecitivity matrix to file " \
                   + filename + "..", flush=True) 
             pickle.dump(connectivity_mat,
-                        open(dir_name + "/" + filename, "wb" ))
+                        open(dir_name + "/" + filename, "wb"))
     
     return connectivity_mat
 

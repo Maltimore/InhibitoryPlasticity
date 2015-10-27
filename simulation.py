@@ -17,7 +17,7 @@ tau_ampa = 5.0*ms         # Glutamatergic synaptic time constant
 tau_gaba = 10.0*ms        # GABAergic synaptic time constant
 epsilon = 0.02            # Sparseness of synaptic connections
 tau_stdp = 20*ms          # STDP time constant
-simtime = 30001*ms        # Simulation time
+simtime = 1001*ms        # Simulation time
 dt = .1*ms                # Simulation time step
 rate_interval = 500*ms    # bin size to compute firing rate
 gl = 10.0*nS              # Leak conductance
@@ -39,6 +39,8 @@ start_weight = 10         # starting weight for the inh to exc connections
 w_holder = np.zeros((int(NE * fixed_in_degree * NI),
                      int(simtime/rate_interval)+1))
 w_holder[:, 0] = start_weight
+rate_holder = np.zeros((NI, int(simtime/rate_interval)))
+
 
 
 # control parameters
@@ -159,6 +161,11 @@ def local_update(t):
     _, firing_rates = mytools.estimate_single_firing_rates(inhSpikeMon, 
                          rate_interval, simtime,
                          t_min = t - rate_interval, t_max = t)
+    # save the computed firing rates for usage after the simulation ended
+    # (the minus 1 is because at t = 0 we can't save anything)
+    rate_holder[:, int(t/rate_interval)-1] = firing_rates
+    
+    # apply the rate sensor to the single firing rates
     firing_rates = mytools.rate_sensor(firing_rates, x_NI, sigma_s)
     
     temp_w_holder = np.array(con_ei.w)
@@ -169,6 +176,7 @@ def local_update(t):
     # set below 0 weights to zero.
     temp_w_holder[temp_w_holder < 0] = 0
     con_ei.w = temp_w_holder
+    # save the weights for later usage 
     w_holder[:, int(t/rate_interval)] = temp_w_holder
     print("updating index " + str(int(t/rate_interval)))
 
@@ -191,7 +199,7 @@ print("Done simulating.")
 ### PLOTTING ##################################################################
 if do_plotting:
     plot_script.create_plots(SpikeMon, inhSpikeMon, rate_interval, w_holder,
-                             rho_0, simtime, dt)
+                             rho_0, rate_holder, simtime, dt)
 else:
     print("Plotting was not desired.")
 

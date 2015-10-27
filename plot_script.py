@@ -9,7 +9,7 @@ plot_n_weights = 200
 plot_n_rates = 200
 
 def create_plots(SpikeMon, inhSpikeMon, rate_interval, w_holder, rho_0,
-                 simtime, dt):
+                 rate_holder, simtime, dt):
     print("Creating plots..")
     N_inh_neurons = len(inhSpikeMon.spike_trains())    
 #    # all spikes
@@ -17,15 +17,8 @@ def create_plots(SpikeMon, inhSpikeMon, rate_interval, w_holder, rho_0,
 #    plt.plot(SpikeMon.t/ms, SpikeMon.i, '.k', markersize=.1)
 #    plt.xlabel("Time (ms)")
 #    plt.ylabel("Neuron index")
-#
-#    # first show_n inhibitory neurons spikes
-#    show_n = 20
-#    plt.figure()
-#    plt.plot(inhSpikeMon.t/ms, inhSpikeMon.i, '.k')
-#    plt.ylim([0, show_n])
-#    plt.xlabel("Time (ms)")
-#    plt.ylabel("Neuron index")
-#    plt.title("Spikes in the first " + str(show_n) + " inhibitory neurons")
+
+
     
     # inhibitory firing rate and weights over time
     # draw randomly plot_n_weights from the weights matrix
@@ -33,24 +26,22 @@ def create_plots(SpikeMon, inhSpikeMon, rate_interval, w_holder, rho_0,
     w_idxes = w_idxes.astype(int)
     w_streams = w_holder[w_idxes, :]
     avg_w_stream = np.average(w_streams, axis=0)
-    
-    print("Estimating single firing rates..", end="", flush=True)
-    _, rate_vector = mytools.estimate_single_firing_rates(inhSpikeMon, 
-                                                    rate_interval,
-                                                    simtime,
-                                                    t_min= 0*ms,
-                                                    N_neurons = plot_n_rates)
-    print(" Done.", flush=True)
-    times, rates = mytools.estimate_pop_firing_rate(inhSpikeMon, rate_interval,
-                                                    simtime)
-    w_times = np.hstack((0*ms, times))
+
+    r_idxes = np.random.uniform(rate_holder.shape[0], size=plot_n_rates)
+    r_idxes = r_idxes.astype(int)    
+    r_stream = rate_holder[r_idxes, :]
+    avg_r_stream = np.average(rate_holder, axis=0)
+
+    r_times = np.arange(rate_interval/ms, simtime/ms, rate_interval/ms) * ms  
+    w_times = np.arange(0, simtime/ms, rate_interval/ms) * ms
 
     fig, axes = plt.subplots(2, figsize=(15, 10))
-    axes[0].plot(times/second, rate_vector.T, color="red",
+    axes[0].plot(r_times/second, r_stream.T, color="red",
                  alpha=.2, linewidth=.3)
-    axes[0].plot(times/second, rates, color="red", label="firing_rate")
-    axes[0].hlines(rho_0, 0, times[-1], linestyles="--")
-    axes[0].set_xlim([0, times[-1]])
+    axes[0].plot(r_times/second, avg_r_stream, color="red", linewidth=2,
+                 label="firing_rate")
+    axes[0].hlines(rho_0, 0, r_times[-1], linestyles="--")
+    axes[0].set_xlim([0, r_times[-1]])
     axes[0].set_xlabel("time [s]")
     axes[0].set_ylabel("firing rate [Hz]")
     axes[0].set_title(str(plot_n_rates) + \
@@ -59,9 +50,9 @@ def create_plots(SpikeMon, inhSpikeMon, rate_interval, w_holder, rho_0,
     axes[1].plot(w_times/second, w_streams.T, color="gray", alpha=.2,
                  linewidth=.3)
     axes[1].plot(w_times/second, avg_w_stream, color="black")
-    axes[1].hlines(0, 0, times[-1], linestyles="--")
+    axes[1].hlines(0, 0, w_times[-1], linestyles="--")
     axes[1].set_ylim([-1, np.amax(w_streams)+10])
-    axes[1].set_xlim([0, times[-1]])
+    axes[1].set_xlim([0, w_times[-1]])
     axes[1].set_xlabel("time [s]")
     axes[1].set_ylabel("Inh to exc weight")
     axes[1].set_title(str(plot_n_weights) + \
