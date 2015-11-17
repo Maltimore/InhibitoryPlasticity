@@ -28,22 +28,18 @@ fixed_in_degree = .02     # amount of incoming connections
 eta = .05                 # Learning rate
 rho_0 = 15                # Target firing rate
 scaling_factor = np.sqrt(10000 / Ntot)
-w_ee = .3 * scaling_factor*nS
-w_ie = .3  * scaling_factor*nS
-w_ii = 3  * scaling_factor*nS
 
 ### Parameters I'm actually changing ##########################################
-simtime = 5000*ms        # Simulation time
+simtime = 200000*ms        # Simulation time
 simtime += 1*ms           # adding one so that things like np.arange create
                           # a bin for the last interval
 dt = .1*ms                # Simulation time step
 sigma_c = 100             # connectivity spread
-sigma_s = 0            # sensor width
+sigma_s = 1000            # sensor width
 start_weight = 8          # starting weight for the inh to exc connections
 do_plotting = True
 do_global_update = False
 do_local_update = True
-do_profiling = True
 
 ### VARIABLE DECLARATIONS #####################################################
 # a matrix to hold the inh to exc weights as they change over time
@@ -83,7 +79,7 @@ connectivity_mat = mytools.create_connectivity_mat(
                                         reload_from_file = True,
                                         filename = "exc_to_exc",
                                         dir_name = "connectivity_matrices")
-con_ee = Synapses(Pe, Pe, pre='g_ampa += w_ee')
+con_ee = Synapses(Pe, Pe, pre='g_ampa += 0.3*scaling_factor*nS')
 con_ee.connect(connectivity_mat[:,0], connectivity_mat[:,1])
 
 connectivity_mat = mytools.create_connectivity_mat(
@@ -97,7 +93,7 @@ connectivity_mat = mytools.create_connectivity_mat(
                                         reload_from_file = True,
                                         filename = "exc_to_inh",
                                         dir_name = "connectivity_matrices")
-con_ie = Synapses(Pe, Pi, pre='g_ampa += w_ie')
+con_ie = Synapses(Pe, Pi, pre='g_ampa += 0.3*scaling_factor*nS')
 con_ie.connect(connectivity_mat[:,0], connectivity_mat[:,1])
 
 connectivity_mat = mytools.create_connectivity_mat(
@@ -111,7 +107,7 @@ connectivity_mat = mytools.create_connectivity_mat(
                                         reload_from_file = True,
                                         filename = "inh_to_inh",
                                         dir_name = "connectivity_matrices")
-con_ii = Synapses(Pi, Pi, pre='g_gaba += w_ii')
+con_ii = Synapses(Pi, Pi, pre='g_gaba += 3*scaling_factor*nS')
 con_ii.connect(connectivity_mat[:,0], connectivity_mat[:,1])
 
 ### PLASTIC SYNAPSES ##########################################################
@@ -184,6 +180,7 @@ def local_update(t):
     con_ei.w = temp_w_holder
     # save the weights for later usage 
     w_holder[:, int(t/rate_interval)] = temp_w_holder
+    print("updating index " + str(int(t/rate_interval)))
 
 
 
@@ -198,7 +195,7 @@ if do_local_update:
     
 ### SIMULATION ################################################################
 print("Running simulation..")
-MyNet.run(simtime, report="stdout", profile=do_profiling)
+MyNet.run(simtime, report="stdout")
 print("Done simulating.")
 
 ### PLOTTING ##################################################################
@@ -208,6 +205,3 @@ if do_plotting:
 else:
     print("Plotting was not desired.")
 
-### PRINT PROFILING ###########################################################
-if do_profiling:
-    print(profiling_summary(net=MyNet))

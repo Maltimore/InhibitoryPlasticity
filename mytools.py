@@ -78,7 +78,15 @@ def estimate_single_firing_rates(SpikeMon, rate_interval, simtime,
     # the superfluous axis
     rate_mat = rate_mat.squeeze()
     return upper_bound_times, rate_mat
-    
+
+def _create_connectivity_filename(raw_filename, sigma_c, N_pre, N_post):
+    """ Creates a long filename that uniquely identifies a connectivity
+        matrix file.
+    """
+    new_filename = raw_filename + "__sigma_c_" + str(sigma_c) + "__N_pre_" + \
+                   str(N_pre) + "__N_post_" + str(N_post)
+    return new_filename
+
 def create_connectivity_mat(sigma_c = 500,
                             N_pre = 8000,
                             N_post = 2000,
@@ -89,15 +97,16 @@ def create_connectivity_mat(sigma_c = 500,
                             reload_from_file = True,
                             filename = "no_name_specified",
                             dir_name = "connectivity_matrices"):
-    
+    full_filename = _create_connectivity_filename(filename, sigma_c,
+                                                  N_pre, N_post)
     if reload_from_file:
-        if os.path.exists(dir_name + "/" + filename):
+        if os.path.exists(dir_name + "/" + full_filename):
             print("Loading connecitivity matrix from file " \
-                  + filename + "..", end="", flush=True)                        
-            conn_mat = pickle.load(open(dir_name + "/" + filename, "rb"))            
+                  + full_filename + "..", end="", flush=True)                        
+            conn_mat = pickle.load(open(dir_name + "/" + full_filename, "rb"))            
             print(" Done.", flush=True)            
             return conn_mat
-    print("Couldn't find connectivity matrices on disk. Creating..", end="",
+    print("Couldn't find connectivity matrix on disk. Creating..", end="",
           flush=True)
     pre_idxes = np.arange(N_pre)
     post_idxes = np.arange(N_post)
@@ -144,11 +153,11 @@ def create_connectivity_mat(sigma_c = 500,
     if save_to_file:
         if not os.path.exists(dir_name):
             os.makedirs(dir_name)
-        if not os.path.exists(dir_name + "/" + filename):
+        if not os.path.exists(dir_name + "/" + full_filename):
             print("Saving connecitivity matrix to file " \
-                  + filename + "..", flush=True) 
+                  + full_filename + "..", flush=True) 
             pickle.dump(connectivity_mat,
-                        open(dir_name + "/" + filename, "wb"))
+                        open(dir_name + "/" + full_filename, "wb"))
     
     return connectivity_mat
 
