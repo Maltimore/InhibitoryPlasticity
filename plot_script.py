@@ -13,10 +13,10 @@ def create_plots(SpikeMon, inhSpikeMon, rate_interval, rho_0, w_holder,
     print("Creating plots..")
     N_inh_neurons = len(inhSpikeMon.spike_trains())    
 #    # all spikes
-#    plt.figure()
-#    plt.plot(SpikeMon.t/ms, SpikeMon.i, '.k', markersize=.1)
-#    plt.xlabel("Time (ms)")
-#    plt.ylabel("Neuron index")
+    plt.figure()
+    plt.plot(SpikeMon.t/ms, SpikeMon.i, '.k', markersize=.1)
+    plt.xlabel("Time (ms)")
+    plt.ylabel("Neuron index")
 
 
     
