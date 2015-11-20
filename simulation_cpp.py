@@ -44,12 +44,12 @@ plot_n_weights = 200
 sigma_c = 100             # connectivity spread
 sigma_s = 50 / x_NI       # sensor width adapted to spacing of inh cells
 start_weight = 8          # starting weight for the inh to exc connections
-do_plotting = True
+do_plotting = False
 do_global_update = False
 do_local_update = False
 do_profiling = False
 do_run = True
-mypath = "/home/malte/Dropbox/Studium/Lab_Rotation_1/program/cpp_standalone"
+mypath = "cpp_standalone"
 np.random.seed(1337)
 
 ### NEURONS ###################################################################
