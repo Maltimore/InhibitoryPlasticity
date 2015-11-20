@@ -38,12 +38,13 @@ simtime += 1*ms           # adding one so that things like np.arange create
                           # a bin for the last interval
 dt = .1*ms                # Simulation time step
 sigma_c = 100             # connectivity spread
-sigma_s = 0            # sensor width
+sigma_s = 25              # sensor width
 start_weight = 8          # starting weight for the inh to exc connections
 do_plotting = True
 do_global_update = False
 do_local_update = True
 do_profiling = True
+np.random.seed(1337)
 
 ### VARIABLE DECLARATIONS #####################################################
 # a matrix to hold the inh to exc weights as they change over time
