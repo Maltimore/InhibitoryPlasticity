@@ -322,8 +322,6 @@ def runnet(sigma_s, NI, NE, rho_0, eta, wmin, wmax, rate_interval,
         return 0
               
               
-              
-              
 ### NETWORK ###################################################################
 MyNetworkObjects = {"neurons": neurons,
                     "Pe": Pe,
