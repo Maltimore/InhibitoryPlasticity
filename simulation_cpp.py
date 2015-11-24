@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import plot_script
 import mytools
 import imp
+import os
 imp.reload(plot_script)
 imp.reload(mytools)
 start_scope()
@@ -36,7 +37,7 @@ wmin = 0
 wmax = w_ii * 100 / nS
 
 ### Parameters I'm actually changing ##########################################
-simtime = 20000*ms        # Simulation time
+simtime = 2000*ms        # Simulation time
 simtime += 1*ms           # adding one so that things like np.arange create
                           # a bin for the last interval
 dt = .1*ms                # Simulation time step
@@ -49,7 +50,7 @@ do_global_update = False
 do_local_update = False
 do_profiling = False
 do_run = True
-mypath = "cpp_standalone"
+program_dir = os.path.dirname(__file__)
 np.random.seed(1337)
 
 ### NEURONS ###################################################################
@@ -145,13 +146,14 @@ inhWeightMon = StateMonitor(con_ei, "w", dt = rate_interval,
 
 ### RUN FUNCTION ##############################################################
 def runnet(sigma_s, NI, NE, rho_0, eta, wmin, wmax, rate_interval,
-           network_objs, tempdir="/tmp/brian_source_files", run=True):
+           network_objs, program_dir="/tmp/brian_source_files", run=True):
     import os
     from numpy.fft import rfft, irfft
     from brian2.devices.device import CurrentDeviceProxy
     from brian2.units import Unit
     from brian2 import check_units, implementation, device, prefs, NeuronGroup, Network
-
+    
+    tempdir = os.path.join(program_dir, 'cpp_standalone')
     if not os.path.exists(tempdir):
         os.makedirs(tempdir)
                   
@@ -343,7 +345,7 @@ rateMon = runnet(sigma_s = sigma_s,
                wmax=wmax,
                rate_interval = rate_interval,
                network_objs = MyNetworkObjects,
-               tempdir = mypath,
+               program_dir = program_dir,
                run = do_run)
 print("Done simulating.")
 
