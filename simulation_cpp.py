@@ -161,16 +161,18 @@ def runnet(sigma_s, NI, NE, rho_0, eta, wmin, wmax, rate_interval,
     prefs.codegen.cpp.libraries += ['mkl_gf_lp64', # -Wl,--start-group
                                     'mkl_gnu_thread',
                                     'mkl_core', #  -Wl,--end-group
-                                    'iomp5']    
-    prefs.codegen.cpp.extra_link_args += ['-L{0}/miniconda3/lib'.format(os.path.expanduser('~')),
-                                          '-m64', '-Wl,--no-as-needed']
+                                    'iomp5']
 
     
     os.environ["LD_LIBRARY_PATH"] = os.path.expanduser('~/miniconda3/lib:')   ## for the linker 
     extra_incs = ['-I'+os.path.expanduser(s) for s in [ tempdir, "~/intel/mkl/include"]]
     prefs.codegen.cpp.extra_compile_args_gcc = ['-w', '-Ofast', '-march=native'] + extra_incs
     mkl_threads = 1
-    
+
+    prefs.codegen.cpp.extra_link_args += ['-L{0}/intel/mkl/lib/intel64'.format(os.path.expanduser('~')),
+                                          '-L{0}/intel/lib/intel64'.format(os.path.expanduser('~')),
+                                          '-m64', '-Wl,--no-as-needed']
+                                          
     # Variable definitions
     N = NI # this is the amount of neurons with variable synaptic strength
     Noffset = NE
