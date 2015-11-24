@@ -164,21 +164,29 @@ def runnet(sigma_s, NI, NE, rho_0, eta, wmin, wmax, rate_interval,
                                     'iomp5']
 
     
-    os.environ["LD_LIBRARY_PATH"] = os.path.expanduser('~/miniconda3/lib:')   ## for the linker 
+    os.environ["LD_LIBRARY_PATH"] = os.path.expanduser('~/miniconda3/envs/brian2env/lib:')   ## for the linker 
+
+    # give extra arguments and path information to the compiler    
     extra_incs = ['-I'+os.path.expanduser(s) for s in [ tempdir, "~/intel/mkl/include"]]
     prefs.codegen.cpp.extra_compile_args_gcc = ['-w', '-Ofast', '-march=native'] + extra_incs
-    mkl_threads = 1
 
+    # give extra arguments and path information to the linker
     prefs.codegen.cpp.extra_link_args += ['-L{0}/intel/mkl/lib/intel64'.format(os.path.expanduser('~')),
                                           '-L{0}/intel/lib/intel64'.format(os.path.expanduser('~')),
                                           '-m64', '-Wl,--no-as-needed']
-                                          
+    
+    # Path that the compiled and linked code needs at runtime
+    os.environ["LD_LIBRARY_PATH"] = os.path.expanduser('~/intel/mkl/lib/intel64:')   ## for the linker 
+    os.environ["LD_LIBRARY_PATH"] += os.path.expanduser('~/intel/lib/intel64:')
+                                       
     # Variable definitions
     N = NI # this is the amount of neurons with variable synaptic strength
     Noffset = NE
     neurons = network_objs["neurons"]
     con = con_ei
     rho0_dt = rho_0/second * rate_interval
+    mkl_threads = 1
+
 
     # Includes the header files in all generated files
     prefs.codegen.cpp.headers += ['<sense.h>',]
