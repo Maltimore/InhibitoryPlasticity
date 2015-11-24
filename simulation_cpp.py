@@ -50,7 +50,7 @@ do_global_update = False
 do_local_update = False
 do_profiling = False
 do_run = True
-program_dir = os.path.dirname(__file__)
+program_dir = os.getcwd()
 np.random.seed(1337)
 
 ### NEURONS ###################################################################
