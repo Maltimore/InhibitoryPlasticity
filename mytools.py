@@ -188,3 +188,196 @@ def compute_sparseness(rate_holder):
     NI = len(rates)
     sparseness = ((np.sum(rates)/NI)**2) / (np.sum(rates**2)/NI)
     return sparseness
+    
+    
+def run_cpp_standalone(params, network_objs):
+    import os
+    from numpy.fft import rfft, irfft
+    from brian2.devices.device import CurrentDeviceProxy
+    from brian2.units import Unit
+    from brian2 import check_units, implementation, device, prefs, NeuronGroup, Network
+
+    tempdir = os.path.join(params["program_dir"], 'cpp_standalone')
+    if not os.path.exists(tempdir):
+        os.makedirs(tempdir)
+                  
+                  
+    prefs.codegen.cpp.libraries += ['mkl_gf_lp64', # -Wl,--start-group
+                                    'mkl_gnu_thread',
+                                    'mkl_core', #  -Wl,--end-group
+                                    'iomp5']
+
+    
+    # give extra arguments and path information to the compiler    
+    extra_incs = ['-I'+os.path.expanduser(s) for s in [ tempdir, "~/intel/mkl/include"]]
+    prefs.codegen.cpp.extra_compile_args_gcc = ['-w', '-Ofast', '-march=native'] + extra_incs
+
+    # give extra arguments and path information to the linker
+    prefs.codegen.cpp.extra_link_args += ['-L{0}/intel/mkl/lib/intel64'.format(os.path.expanduser('~')),
+                                          '-L{0}/intel/lib/intel64'.format(os.path.expanduser('~')),
+                                          '-m64', '-Wl,--no-as-needed']
+    
+    # Path that the compiled and linked code needs at runtime
+    os.environ["LD_LIBRARY_PATH"] = os.path.expanduser('~/intel/mkl/lib/intel64:')
+    os.environ["LD_LIBRARY_PATH"] += os.path.expanduser('~/intel/lib/intel64:')
+                                       
+    # Variable definitions
+    N = params["NI"] # this is the amount of neurons with variable synaptic strength
+    Noffset = params["NE"]
+    neurons = network_objs["neurons"]
+    con = network_objs["con_ei"]
+    rho0_dt = params["rho_0"]/second * params["rate_interval"]
+    mkl_threads = 1
+
+
+    # Includes the header files in all generated files
+    prefs.codegen.cpp.headers += ['<sense.h>',]
+    prefs.codegen.cpp.define_macros += [('N_REAL', int(N)),
+                                        ('N_CMPLX', int(N/2+1))]
+    path_to_sense_hpp = os.path.join(tempdir, 'sense.h') 
+    path_to_sense_cpp = os.path.join(tempdir, 'sense.cpp')
+    with open(path_to_sense_hpp, "w") as f:
+        header_code = '''
+        #ifndef SENSE_H
+        #define SENSE_H
+        #include <mkl_service.h>
+        #include <mkl_vml.h>
+        #include <mkl_dfti.h>
+        #include <cstring>
+        extern DFTI_DESCRIPTOR_HANDLE hand;
+        extern MKL_Complex16 in_cmplx[N_CMPLX], out_cmplx[N_CMPLX], k_cmplx[N_CMPLX];
+        DFTI_DESCRIPTOR_HANDLE init_dfti();
+        #endif'''
+        f.write(header_code)
+        #MKL_Complex16 is a type (probably struct)
+    with open(path_to_sense_cpp, "w") as f:
+        sense_code = '''
+        #include <sense.h>
+        DFTI_DESCRIPTOR_HANDLE hand;
+        MKL_Complex16 in_cmplx[N_CMPLX], out_cmplx[N_CMPLX], k_cmplx[N_CMPLX];
+        DFTI_DESCRIPTOR_HANDLE init_dfti()
+        {{
+            DFTI_DESCRIPTOR_HANDLE hand = 0;
+            mkl_set_num_threads({mkl_threads});
+            DftiCreateDescriptor(&hand, DFTI_DOUBLE, DFTI_REAL, 1, (MKL_LONG)N_REAL); //MKL_LONG status
+            DftiSetValue(hand, DFTI_PLACEMENT, DFTI_NOT_INPLACE);
+            DftiSetValue(hand, DFTI_CONJUGATE_EVEN_STORAGE, DFTI_COMPLEX_COMPLEX);
+            DftiSetValue(hand, DFTI_BACKWARD_SCALE, 1. / N_REAL);
+            //if (0 == status) status = DftiSetValue(hand, DFTI_THREAD_LIMIT, {mkl_threads});
+            DftiCommitDescriptor(hand); //if (0 != status) cout << "ERROR, status = " << status << "\\n";
+            return hand;
+        }} '''.format(mkl_threads=mkl_threads, )
+        f.write(sense_code)
+
+    # device_get_array_name will be the function get_array_name() and what it does is getting
+    # the string names of brian objects
+    device_get_array_name = CurrentDeviceProxy.__getattr__(device, 'get_array_name')   
+    # instert_code is a function which is used to insert code into the main()
+    # function
+    insert_code = CurrentDeviceProxy.__getattr__(device, 'insert_code')
+   
+    ### Computing the kernel (Owen changed it to a gaussian kernel now)
+    # Owen uses a trick here which is he creates a NeuronGroup which doesn't
+    # really do anything in the Simulation. It's just a dummy NeuronGroup
+    # to hold an array to which he would like to have access to during runtime.   
+    if params["sigma_s"] == np.infty:
+        k = np.ones(N)/N
+    elif params["sigma_s"] < 1e-3: 
+        k = np.zeros(N)
+        k[0] = 1
+    else:
+        intercell = 1.
+        length = intercell*N
+        d = np.linspace(intercell-length/2, length/2, N)
+        d = np.roll(d, int(N/2+1))
+        k = np.exp(-np.abs(d)/params["sigma_s"])
+        k /= k.sum()
+    rate_vars =  '''k : 1
+                    r_hat : 1
+                    r_hat_single : 1'''
+    kg = NeuronGroup(N, model=rate_vars, name='kernel_rates')
+    kg.active = False
+    kg.k = k #kernel in the spatial domain
+    network_objs["dummygroup"] = kg
+
+    rateMon = StateMonitor(network_objs["Pi"], "A", record=True,
+                           when="start",
+                           dt=params["rate_interval"])
+    network_objs["rateMon"] = rateMon
+    
+    main_code = '''
+    hand = init_dfti(); 
+    DftiComputeForward(hand, brian::{k}, k_cmplx); 
+    '''.format(k=device_get_array_name(kg.variables['k']))
+    insert_code('main', main_code) # DftiComp.. writes its result into k_cmplx
+    K = rfft(k)
+    
+    # Variable A is a spike counter
+    # memset resets the array to zero (memset is defined to take voidpointers)
+    # also the star before *brian tells it to not compute the size of the 
+    # pointer, but what the pointer points to
+    # the _num_ thing is that whenever there's an array in brian,
+    # it automatically creates an integer of the same name with _num_ 
+    # in front of it (and that is the size)
+    custom_code = '''
+    double spatial_filter(int)
+    {{
+        DftiComputeForward(hand, brian::{A}+{Noffset}, in_cmplx);
+        vzMul(N_CMPLX, in_cmplx, k_cmplx, out_cmplx);
+        DftiComputeBackward(hand, out_cmplx, brian::{r_hat});
+        memset(brian::{A}, 0, brian::_num_{A}*sizeof(*brian::{A}));
+        return 0;
+    }}
+    '''.format(A=device_get_array_name(neurons.variables['A']),
+               r_hat=device_get_array_name(kg.variables['r_hat']),
+               Noffset=Noffset)
+    @implementation('cpp', custom_code)
+    @check_units(_=Unit(1), result=Unit(1), discard_units=True)
+    def spatial_filter(_):
+        kg.r_hat = irfft(K * rfft(neurons.A), N).real
+        neurons.A = 0
+        return 0
+    neurons.run_regularly('dummy = spatial_filter()',
+                          dt=params["rate_interval"], order=1,
+                          name='filterspatial')
+
+
+    custom_code = '''
+    double update_weights(double w, int32_t i_pre)
+    {{
+        w += {eta}*(brian::{r_hat}[i_pre] - {rho0_dt});
+        return std::max({wmin}, std::min(w, {wmax}));
+    }}
+    '''.format(r_hat=device_get_array_name(kg.variables['r_hat']), 
+               eta=params["eta"], rho0_dt = rho0_dt, wmin='0.0',
+               wmax=params["wmax"])
+
+    @implementation('cpp', custom_code)
+    @check_units(w=Unit(1), i_pre=Unit(1), result=Unit(1), discard_units=True)
+    def update_weights(w, i_pre):
+        del_W = params["eta"]*(kg.r_hat - rho0_dt)
+        w += del_W[i_pre]
+        np.clip(w, params["wmin"], params["wmax"], out=w)
+        return w
+    con.run_regularly('w = update_weights(w, i)', dt=params["rate_interval"],
+                      when='end', name='weightupdate' )
+    # i is the presynaptic index (brian
+    # knows this automatically, j would be postsynaptic)
+    
+    params["spatial_filter"] = spatial_filter
+    params["update_weights"] = update_weights
+    network_objs = list(set(network_objs.values()))
+    net = Network(network_objs)
+    
+    if run:
+        print("Starting cpp standalone compilation..")    
+        net.run(params["simtime"], report='text', namespace = params)
+        additional_source_files = [path_to_sense_cpp,]
+        build = CurrentDeviceProxy.__getattr__(device, 'build')
+        build(directory=tempdir, compile=True, run=True, debug=False, 
+              additional_source_files=additional_source_files)
+        return rateMon
+    else:
+        return 0
+    
+
