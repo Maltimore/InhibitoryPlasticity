@@ -17,13 +17,36 @@ def _exp_function(x_vec, mu, scale):
         return y_vec
     elif scale == "ininity":
         # if an infinitely big sensor is desired, return uniform weights
-        y_vec = np.zones(len(x_vec))
+        y_vec = np.ones(len(x_vec))
         y_vec /= np.sum(y_vec)
         return y_vec
     #else, compute normal exponential function
     return 1/scale * np.exp(2* -np.abs(x_vec - mu) / scale)
 
 ### TOOL FUNCTIONS ############################################################
+def rate_sensor(firing_rates, x_NI, sigma_s):
+    """ Compute the firing rates per neuron with an exponential window across
+        the neighboring neurons. The exponential window is paraemtrized by
+        sigma_s, which is the width of the exponential. """
+    N_neurons = len(firing_rates)
+    # Creating the exponential window and set its maximum over the "middle"
+    # (in the vector) neuron. Later we will just take this window and rotate
+    # it according to our needs (according to which neurons firing rate we're
+    # estimating).
+    mu = int(N_neurons/2) * x_NI
+    x_vec = np.arange(N_neurons) * x_NI
+    y_vec = _exp_function(x_vec, mu, sigma_s)
+    y_vec /= np.sum(y_vec)
+    
+    sensor_rates = np.zeros(N_neurons)
+    for neuron_idx in np.arange(N_neurons):
+        y_vec_temp = np.roll(y_vec, int(neuron_idx - (mu/x_NI)))
+        
+        sensor_rates[neuron_idx] = np.dot(y_vec_temp, firing_rates)
+    
+    return sensor_rates
+
+
 def estimate_pop_firing_rate(SpikeMon, rate_interval, simtime, t_min = 0*ms,
                              t_max = "end of sim"):
     """If t_max - t_min < rate_interval, will still use an entire rate
@@ -161,27 +184,6 @@ def create_connectivity_mat(sigma_c = 500,
     
     return connectivity_mat
 
-def rate_sensor(firing_rates, x_NI, sigma_s):
-    """ Compute the firing rates per neuron with an exponential window across
-        the neighboring neurons. The exponential window is paraemtrized by
-        sigma_s, which is the width of the exponential. """
-    N_neurons = len(firing_rates)
-    # Creating the exponential window and set its maximum over the "middle"
-    # (in the vector) neuron. Later we will just take this window and rotate
-    # it according to our needs (according to which neurons firing rate we're
-    # estimating).
-    mu = int(N_neurons/2) * x_NI
-    x_vec = np.arange(N_neurons) * x_NI
-    y_vec = _exp_function(x_vec, mu, sigma_s) * x_NI
-    y_vec /= np.sum(y_vec)
-    
-    sensor_rates = np.zeros(N_neurons)
-    for neuron_idx in np.arange(N_neurons):
-        y_vec_temp = np.roll(y_vec, int(neuron_idx - (mu/x_NI)))
-        
-        sensor_rates[neuron_idx] = np.dot(y_vec_temp, firing_rates)
-    
-    return sensor_rates
 
 def compute_sparseness(rate_holder):
     rates = rate_holder[:,-1]    
@@ -286,7 +288,7 @@ def run_cpp_standalone(params, network_objs):
         k = np.zeros(N)
         k[0] = 1
     else:
-        intercell = 1.
+        intercell = params["x_NI"]
         length = intercell*N
         d = np.linspace(intercell-length/2, length/2, N)
         d = np.roll(d, int(N/2+1))
@@ -300,10 +302,7 @@ def run_cpp_standalone(params, network_objs):
     kg.k = k #kernel in the spatial domain
     network_objs["dummygroup"] = kg
 
-    rateMon = StateMonitor(network_objs["Pi"], "A", record=True,
-                           when="start",
-                           dt=params["rate_interval"])
-    network_objs["rateMon"] = rateMon
+
     
     main_code = '''
     hand = init_dfti(); 
@@ -340,7 +339,7 @@ def run_cpp_standalone(params, network_objs):
     neurons.run_regularly('dummy = spatial_filter()',
                           dt=params["rate_interval"], order=1,
                           name='filterspatial')
-
+    params["spatial_filter"] = spatial_filter
 
     custom_code = '''
     double update_weights(double w, int32_t i_pre)
@@ -351,6 +350,7 @@ def run_cpp_standalone(params, network_objs):
     '''.format(r_hat=device_get_array_name(kg.variables['r_hat']), 
                eta=params["eta"], rho0_dt = rho0_dt, wmin='0.0',
                wmax=params["wmax"])
+    
 
     @implementation('cpp', custom_code)
     @check_units(w=Unit(1), i_pre=Unit(1), result=Unit(1), discard_units=True)
@@ -363,21 +363,45 @@ def run_cpp_standalone(params, network_objs):
                       when='end', name='weightupdate' )
     # i is the presynaptic index (brian
     # knows this automatically, j would be postsynaptic)
-    
-    params["spatial_filter"] = spatial_filter
     params["update_weights"] = update_weights
+    
+    
     network_objs = list(set(network_objs.values()))
     net = Network(network_objs)
     
-    if run:
+    if params["do_run"]:
         print("Starting cpp standalone compilation..")    
         net.run(params["simtime"], report='text', namespace = params)
         additional_source_files = [path_to_sense_cpp,]
         build = CurrentDeviceProxy.__getattr__(device, 'build')
         build(directory=tempdir, compile=True, run=True, debug=False, 
               additional_source_files=additional_source_files)
-        return rateMon
-    else:
-        return 0
     
 
+def run_old_algorithm(params, network_objs):
+    @network_operation(dt=params["rate_interval"], order=1)
+    def local_update(t):
+        if t/ms == 0:
+            # if this is t = 0, skip the computation
+            return
+        firing_rates = network_objs["Pi"].A / (params["rate_interval"] / second)
+        network_objs["Pi"].A = 0
+        
+        # apply the rate sensor to the single firing rates
+        firing_rates = rate_sensor(firing_rates, 
+                                   params["x_NI"],
+                                   params["sigma_s"])
+        
+        temp_w_holder = np.array(network_objs["con_ei"].w)
+        for neuron_idx in np.arange(params["NI"]):
+            delta_w = params["eta"] * (firing_rates[neuron_idx] - params["rho_0"])
+            idxes = params["ei_conn_mat"][:,0] == neuron_idx
+            temp_w_holder[idxes] += delta_w
+        # set below 0 weights to zero.
+        temp_w_holder = clip(temp_w_holder, params["wmin"], params["wmax"])
+        network_objs["con_ei"].w = temp_w_holder
+    
+    network_objs["local_update"] = local_update
+    net = Network(list(set(network_objs.values())))
+    net.run(params["simtime"], report="stdout",
+            profile= params["do_profiling"], namespace = params)

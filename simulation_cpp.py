@@ -7,7 +7,6 @@ import os
 imp.reload(plot_script)
 imp.reload(mytools)
 start_scope()
-set_device("cpp_standalone")
 
 ### PARAMETERS ################################################################
 Ntot = 10000
@@ -47,11 +46,11 @@ all_parameters = { \
     
     
     
-    "simtime" : 2001*ms        ,   # Simulation time
+    "simtime" : 20001*ms       ,   # Simulation time
     "dt" : .1*ms               ,   # Simulation time step
     "plot_n_weights" : 200     ,   # Number of weights to be plotted
     "sigma_c" : 100            ,   # connectivity spread
-    "sigma_s" : 50 / x_NI      ,   # sensor width adapted to spacing of inh cells
+    "sigma_s" : 200            ,   # sensor width adapted to spacing of inh cells
     "start_weight" : 8         ,   # starting weight for the inh to exc connections
     "do_plotting" : True       ,  
     "do_global_update" : False , 
@@ -64,8 +63,11 @@ for key,val in all_parameters.items():
     exec(key + '=val')
     
 np.random.seed(1337)
-use_maltes_algorithm = False
+use_maltes_algorithm = True
 use_owens_algorithm = not use_maltes_algorithm
+all_parameters["cpp_standalone"] = use_owens_algorithm
+if all_parameters["cpp_standalone"]:
+    set_device("cpp_standalone")
 
 ### NEURONS ###################################################################
 print("Creating neurons..")
@@ -85,7 +87,7 @@ Pe = neurons[:NE]
 Pi = neurons[NE:]
 neurons.v = np.random.uniform(el, vt, len(neurons))*volt 
 
-### NONPLASTIC SYNAPSES #######################################################
+### SYNAPSES ##################################################################
 print("Creating nonplastic synapses..")
 connectivity_mat = mytools.create_connectivity_mat(
                                         sigma_c = sigma_c,
@@ -129,7 +131,6 @@ connectivity_mat = mytools.create_connectivity_mat(
 con_ii = Synapses(Pi, Pi, pre='g_gaba += w_ii')
 con_ii.connect(connectivity_mat[:,0], connectivity_mat[:,1])
 
-### PLASTIC SYNAPSES ##########################################################
 print("Creating plastic synapses..")
 ei_conn_mat = mytools.create_connectivity_mat(
                                         sigma_c = sigma_c,
@@ -150,6 +151,8 @@ con_ei = Synapses(Pi, Pe,
                          ''')
 con_ei.connect(ei_conn_mat[:,0], ei_conn_mat[:,1])
 con_ei.w = start_weight
+all_parameters["ei_conn_mat"] = ei_conn_mat # saving this particular conn.
+                                            # matrix for later use
 
 ### MONITORS ##################################################################
 print("Setting up Monitors..")
@@ -157,75 +160,33 @@ k_in_ei = NI * epsilon
 random_selection = np.floor(np.random.uniform(0, k_in_ei*NE, plot_n_weights))
 inhWeightMon = StateMonitor(con_ei, "w", dt = rate_interval,
                             record=random_selection)
-
-### RUN FUNCTION ##############################################################
-
-
-def runnet2(sigma_s, NI, NE, rho_0, eta, wmin, wmax, rate_interval, simtime,
-           network_objs, program_dir="/tmp/brian_source_files", run=True):
-    def exponential_window(tau, dt):
-        max_t = 5 * tau
-        time = np.arange(0, max_t/ms, dt/ms) * ms
-        window = 1 / tau * np.exp(-time/(tau))
-        window /= np.sum(window)
-        return time, window
-    
-    @network_operation(dt=rate_interval)
-    def local_update(t):
-        if t/ms == 0:
-            # if this is t = 0, skip the computation
-            return
-        _, firing_rates = mytools.estimate_single_firing_rates(inhSpikeMon, 
-                             rate_interval, simtime,
-                             t_min = t - rate_interval, t_max = t)
-        # save the computed firing rates for usage after the simulation ended
-        # (the minus 1 is because at t = 0 we can't save anything)
-        rate_holder[:, int(t/rate_interval)-1] = firing_rates
-        
-        # apply the rate sensor to the single firing rates
-        firing_rates = mytools.rate_sensor(firing_rates, x_NI, sigma_s)
-        
-        temp_w_holder = np.array(con_ei.w)
-        for neuron_idx in np.arange(NI):
-            delta_w = eta * (firing_rates[neuron_idx] - rho_0)
-            idxes = ei_conn_mat[:,0] == neuron_idx
-            temp_w_holder[idxes] += delta_w
-        # set below 0 weights to zero.
-        temp_w_holder[temp_w_holder < 0] = 0
-        con_ei.w = temp_w_holder
-        # save the weights for later usage 
-        w_holder[:, int(t/rate_interval)] = temp_w_holder
-    
-    inhSpikeMon = SpikeMonitor(network_objs["Pi"])    
-    network_objs["local_update"] = local_update
-    network_objs["inhSpikeMon"] = inhSpikeMon
-    network_objs = list(set(network_objs.values()))
-    net = Network(network_objs)
-    net.run(simtime, report="stdout", profile=do_profiling)
+rateMon = StateMonitor(Pi, "A", record=True,
+                       when="start",
+                       dt=rate_interval)
               
 ### NETWORK ###################################################################
 network_objs = {"neurons": neurons,
-                    "Pe": Pe,
-                    "Pi": Pi,
-                    "con_ee": con_ee,
-                    "con_ie": con_ie,
-                    "con_ii": con_ii, 
-                    "con_ei": con_ei,
-                    "inhWeightMon": inhWeightMon}
+                "Pe": Pe,
+                "Pi": Pi,
+                "con_ee": con_ee,
+                "con_ie": con_ie,
+                "con_ii": con_ii, 
+                "con_ei": con_ei,
+                "inhWeightMon": inhWeightMon,
+                "rateMon" : rateMon}
     
 ### SIMULATION ################################################################
-print("Starting runnet..")
+print("Starting run function..")
 if use_owens_algorithm:
-    rateMon = mytools.run_cpp_standalone(all_parameters, network_objs)
+    mytools.run_cpp_standalone(all_parameters, network_objs)
 elif use_maltes_algorithm:
-    pass
+    mytools.run_old_algorithm(all_parameters, network_objs)
 print("Done simulating.")
 
 ### PLOTTING ##################################################################
 if do_plotting:
     rate_holder = rateMon.A[:, 1:] / rate_interval
     w_holder = inhWeightMon.w
-    plot_script.create_plots(False, False, rate_interval, rho_0, 
-                             w_holder, rate_holder, simtime, dt)
+    plot_script.create_plots(all_parameters, w_holder, rate_holder)
 else:
     print("Plotting was not desired.")

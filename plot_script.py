@@ -8,8 +8,7 @@ imp.reload(mytools)
 
 plot_n_rates = 200
 
-def create_plots(SpikeMon, inhSpikeMon, rate_interval, rho_0, w_holder,
-                 rate_holder, simtime, dt):
+def create_plots(params, w_holder, rate_holder):
     print("Creating plots..")
     N_inh_neurons = rate_holder.shape[0]
 #    # all spikes
@@ -17,7 +16,11 @@ def create_plots(SpikeMon, inhSpikeMon, rate_interval, rho_0, w_holder,
 #    plt.plot(SpikeMon.t/ms, SpikeMon.i, '.k', markersize=.1)
 #    plt.xlabel("Time (ms)")
 #    plt.ylabel("Neuron index")
-
+    
+    rate_interval = params["rate_interval"]
+    rho_0 = params["rho_0"]
+    simtime = params["simtime"]
+    dt = params["dt"]
 
     
     avg_w_stream = np.average(w_holder, axis=0)
