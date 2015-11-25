@@ -188,5 +188,3 @@ def compute_sparseness(rate_holder):
     NI = len(rates)
     sparseness = ((np.sum(rates)/NI)**2) / (np.sum(rates**2)/NI)
     return sparseness
-
-
