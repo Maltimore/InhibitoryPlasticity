@@ -375,7 +375,7 @@ def run_cpp_standalone(params, network_objs):
         kg.r_hat = irfft(K * rfft(neurons.A), N).real
         neurons.A = 0
         return 0
-    neurons.run_regularly('dummy = spatial_filter()',
+    network_objs["neurons"].run_regularly('dummy = spatial_filter()',
                           dt=params["rate_interval"], order=1,
                           name='filterspatial')
     params["spatial_filter"] = spatial_filter
@@ -398,8 +398,9 @@ def run_cpp_standalone(params, network_objs):
         w += del_W[i_pre]
         np.clip(w, params["wmin"], params["wmax"], out=w)
         return w
-    con.run_regularly('w = update_weights(w, i)', dt=params["rate_interval"],
-                      when='end', name='weightupdate' )
+    network_objs["con_ei"].run_regularly('w = update_weights(w, i)',
+                                         dt=params["rate_interval"],
+                                         when='end', name='weightupdate')
     # i is the presynaptic index (brian
     # knows this automatically, j would be postsynaptic)
     params["update_weights"] = update_weights
@@ -417,7 +418,7 @@ def run_cpp_standalone(params, network_objs):
 
     if params["prep_time"]/second > 0:
         print("Starting prep time run")
-        net.run(params["simtime"], report='text', namespace = params)
+        net.run(params["prep_time"], report='text', namespace = params)
         additional_source_files = [path_to_sense_cpp,]
         build = CurrentDeviceProxy.__getattr__(device, 'build')
         build(directory=tempdir, compile=True, run=True, debug=False, 

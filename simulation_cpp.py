@@ -73,7 +73,7 @@ for key,val in all_parameters.items():
     exec(key + '=val')
     
 np.random.seed(1337)
-use_maltes_algorithm = True
+use_maltes_algorithm = False
 use_owens_algorithm = not use_maltes_algorithm
 all_parameters["cpp_standalone"] = use_owens_algorithm
 if all_parameters["cpp_standalone"]:
