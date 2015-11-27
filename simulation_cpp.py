@@ -4,6 +4,7 @@ import plot_script
 import mytools
 import imp
 import os
+import sys
 imp.reload(plot_script)
 imp.reload(mytools)
 start_scope()
@@ -58,6 +59,15 @@ all_parameters = { \
     "do_profiling" : False     , 
     "do_run" : True            , 
     "program_dir" : os.getcwd()}
+
+if __name__ == "__main__":
+    user_params = mytools.parse_argvs(sys.argv)
+    if user_params != "invalid":
+        all_parameters["sigma_s"] = user_params[0]
+        all_parameters["sigma_c"] = user_params[1]
+    else:
+        print("User input was invalid.")
+
 # extract variables from the dictionary to the global namespace
 for key,val in all_parameters.items():
     exec(key + '=val')
