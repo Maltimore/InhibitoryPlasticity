@@ -405,17 +405,36 @@ def run_cpp_standalone(params, network_objs):
     params["update_weights"] = update_weights
     
     
-    network_objs = list(set(network_objs.values()))
-    net = Network(network_objs)
+    temp_objs = network_objs.copy()
+    temp_objs.pop("inhWeightMon")
+    temp_objs.pop("rateMon")
+    net = Network(list(set(temp_objs.values())))    
+    net = Network()
     
-    if params["do_run"]:
-        print("Starting cpp standalone compilation..")    
+    if not params["do_run"]:
+        print("Running the network was not desired")
+        return
+
+    if params["prep_time"]/second > 0:
+        print("Starting prep time run")
         net.run(params["simtime"], report='text', namespace = params)
         additional_source_files = [path_to_sense_cpp,]
         build = CurrentDeviceProxy.__getattr__(device, 'build')
         build(directory=tempdir, compile=True, run=True, debug=False, 
               additional_source_files=additional_source_files)
+
+    # Add the Monitors only now so we don't record unnecessarily much.
+    net.add(network_objs["inhWeightMon"])
+    net.add(network_objs["rateMon"])        
+
+    print("Starting real simulation")
+    net.run(params["simtime"], report='text', namespace = params)
+    additional_source_files = [path_to_sense_cpp,]
+    build = CurrentDeviceProxy.__getattr__(device, 'build')
+    build(directory=tempdir, compile=True, run=True, debug=False, 
+          additional_source_files=additional_source_files)
     
+
 
 def run_old_algorithm(params, network_objs):
     @network_operation(dt=params["rate_interval"], order=1)

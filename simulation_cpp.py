@@ -46,7 +46,7 @@ all_parameters = { \
     "load_connectivity_from_file": True,
     
     
-    
+    "prep_time" : 100*s        ,   # give Network time to stabilize
     "simtime" : 20001*ms       ,   # Simulation time
     "dt" : .1*ms               ,   # Simulation time step
     "plot_n_weights" : 200     ,   # Number of weights to be plotted
@@ -183,7 +183,7 @@ network_objs = {"neurons": neurons,
                 "con_ii": con_ii, 
                 "con_ei": con_ei,
                 "inhWeightMon": inhWeightMon,
-                "rateMon" : rateMon}
+                "rateMon": rateMon}
     
 ### SIMULATION ################################################################
 print("Starting run function..")
