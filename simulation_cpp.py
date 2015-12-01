@@ -196,8 +196,8 @@ print("Done simulating.")
 
 ### PLOTTING ##################################################################
 if do_plotting:
-    rate_holder = rateMon.A[:, 1:] / rate_interval
-    w_holder = inhWeightMon.w
+    rate_holder = network_objs["rateMon"].A[:, 1:] / rate_interval
+    w_holder = network_objs["inhWeightMon"].w
     plot_script.create_plots(all_parameters, w_holder, rate_holder)
 else:
     print("Plotting was not desired.")

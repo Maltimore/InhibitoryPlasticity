@@ -405,10 +405,10 @@ def run_cpp_standalone(params, network_objs):
     params["update_weights"] = update_weights
     
     
-#    temp_objs = network_objs.copy()
-#    temp_objs.pop("inhWeightMon")
-#    temp_objs.pop("rateMon")
-    net = Network(list(set(network_objs.values())))    
+    temp_objs = network_objs.copy()
+    temp_objs.pop("inhWeightMon")
+    temp_objs.pop("rateMon")
+    net = Network(list(set(temp_objs.values())))
     
     if not params["do_run"]:
         print("Running the network was not desired")
@@ -422,6 +422,7 @@ def run_cpp_standalone(params, network_objs):
         build(directory=tempdir, compile=True, run=True, debug=False, 
               additional_source_files=additional_source_files)
         print("Prep time run complete.", flush=True)
+    
     # Add the Monitors only now so we don't record unnecessarily much.
     net.add(network_objs["inhWeightMon"])
     net.add(network_objs["rateMon"])        
