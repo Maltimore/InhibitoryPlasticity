@@ -3,10 +3,13 @@ import numpy as np
 import matplotlib.pyplot as plt
 import mytools
 import imp
+import pickle
 imp.reload(mytools)
 
 
-plot_n_rates = 200
+# this needs some work#########################################################
+#results = pickle.load( open( "results.p", "rb" ) )
+
 
 def create_plots(params, w_holder, rate_holder):
     print("Creating plots..")

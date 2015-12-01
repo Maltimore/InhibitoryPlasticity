@@ -1,12 +1,10 @@
 from brian2 import *
 import numpy as np
-import plot_script
 import mytools
 import imp
 import os
 import sys
 import pickle
-imp.reload(plot_script)
 imp.reload(mytools)
 start_scope()
 
@@ -48,10 +46,10 @@ all_parameters = { \
     
     
     "prep_time" : 10*second    ,   # give Network time to stabilize
-    "simtime" : 20001*ms       ,   # Simulation time
+    "simtime" : 10001*ms       ,   # Simulation time
     "dt" : .1*ms               ,   # Simulation time step
     "plot_n_weights" : 200     ,   # Number of weights to be plotted
-    "sigma_c" : 100            ,   # connectivity spread
+    "sigma_c" : "infinity"            ,   # connectivity spread
     "sigma_s" : 200            ,   # sensor width adapted to spacing of inh cells
     "start_weight" : 8         ,   # starting weight for the inh to exc connections
     "do_plotting" : False      ,  
@@ -211,7 +209,7 @@ print("Done simulating.")
 resultspath = program_dir + "/results"
 resultfile = "sigma_s_" + str(all_parameters["sigma_s"]) + "_" + \
              "sigma_c_" + str(all_parameters["sigma_c"]) + "_" + \
-             "prep_" + str(all_parameters["prep_time"]/second) + "_seconds"
+             "prep_" + str(int(all_parameters["prep_time"]/second)) + "_seconds"
 if not os.path.exists(resultspath):
     os.makedirs(resultspath)
 
@@ -224,10 +222,13 @@ results["exc_spike_times"] = network_objs["excSpikeMon"].t/second
 results["exc_spike_neuron_idxes"] = network_objs["excSpikeMon"].i[:]
 results["inh_rates"] = network_objs["rateMon"].A
 results["inh_rate_times"] = network_objs["rateMon"].t/second
+results["prep_time"] = all_parameters["prep_time"]
 pickle.dump(results, open(resultspath + "/" + resultfile, "wb"))
 
 ### PLOTTING ##################################################################
 if do_plotting:
+    import plot_script
+    imp.reload(plot_script) # this is just for development purposes
     rate_holder = network_objs["rateMon"].A[:, 1:] / rate_interval
     w_holder = network_objs["inhWeightMon"].w
     plot_script.create_plots(all_parameters, w_holder, rate_holder)

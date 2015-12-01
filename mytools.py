@@ -190,9 +190,12 @@ def create_connectivity_mat(sigma_c = 500,
             while chosen_pre_unacceptable:
                 # draw from an exponential distribution
                 # (add 1 so no self projections)
-                rand_pre_pos = np.random.exponential(scale=sigma_c) + 1
-                rand_pre_pos *= np.random.randint(0, 2)*2 - 1
-                rand_pre_pos += post_idx * x_post
+                if sigma_c == "infinity":
+                    rand_pre_pos = np.random.uniform(high=x_pre*N_pre)
+                else:
+                    rand_pre_pos = np.random.exponential(scale=sigma_c) + 1
+                    rand_pre_pos *= np.random.randint(0, 2)*2 - 1
+                    rand_pre_pos += post_idx * x_post
                 
                 while rand_pre_pos > N_pre * x_pre:
                     rand_pre_pos -= N_pre * x_pre
@@ -320,7 +323,7 @@ def run_cpp_standalone(params, network_objs):
     # Owen uses a trick here which is he creates a NeuronGroup which doesn't
     # really do anything in the Simulation. It's just a dummy NeuronGroup
     # to hold an array to which he would like to have access to during runtime.   
-    if params["sigma_s"] == np.infty:
+    if params["sigma_s"] == "infinity":
         k = np.ones(N)/N
     elif params["sigma_s"] < 1e-3: 
         k = np.zeros(N)
