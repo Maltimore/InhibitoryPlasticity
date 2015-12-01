@@ -53,7 +53,7 @@ all_parameters = { \
     "sigma_c" : 100            ,   # connectivity spread
     "sigma_s" : 200            ,   # sensor width adapted to spacing of inh cells
     "start_weight" : 8         ,   # starting weight for the inh to exc connections
-    "do_plotting" : True       ,  
+    "do_plotting" : False      ,  
     "do_global_update" : False , 
     "do_local_update" : False  , 
     "do_profiling" : False     , 
