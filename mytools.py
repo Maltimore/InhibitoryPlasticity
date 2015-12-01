@@ -409,10 +409,9 @@ def run_cpp_standalone(params, network_objs):
     # delete the Monitors from the network objects beacuse we don't want to 
     # save these values (for long preparation time it would take too much
     # space in memory).
-    temp_objs = network_objs.copy()    
-    temp_objs.pop("inhWeightMon")
-    temp_objs.pop("rateMon")
-    net = Network(list(set(temp_objs.values())))
+    monitors = network_objs["monitors"]
+    network_objs.pop("monitors")
+    net = Network(list(set(network_objs.values())))
     
     if not params["do_run"]:
         print("Running the network was not desired")
@@ -424,8 +423,8 @@ def run_cpp_standalone(params, network_objs):
         net.run(params["prep_time"], report='text', namespace = params)
     
     # Add the Monitors only now so we don't record unnecessarily much.
-    net.add(network_objs["inhWeightMon"])
-    net.add(network_objs["rateMon"])        
+    network_objs.update(monitors)
+    net.add(list(set(monitors.values())))
 
     print("Adding recorded simulation time " + str(params["simtime"]/second) 
           + " seconds")
@@ -437,6 +436,10 @@ def run_cpp_standalone(params, network_objs):
 
 
 def run_old_algorithm(params, network_objs):
+    monitors = network_objs["monitors"]
+    network_objs.pop("monitors")
+    network_objs.update(monitors)
+    
     @network_operation(dt=params["rate_interval"], order=1)
     def local_update(t):
         if t/ms == 0:

@@ -5,6 +5,7 @@ import mytools
 import imp
 import os
 import sys
+import pickle
 imp.reload(plot_script)
 imp.reload(mytools)
 start_scope()
@@ -174,8 +175,15 @@ inhWeightMon = StateMonitor(con_ei, "w", dt = rate_interval,
 rateMon = StateMonitor(Pi, "A", record=True,
                        when="start",
                        dt=rate_interval)
+inhSpikeMon = SpikeMonitor(Pi)
+excSpikeMon = SpikeMonitor(Pe)
               
 ### NETWORK ###################################################################
+monitors =     {"inhWeightMon": inhWeightMon,
+                "rateMon": rateMon,
+                "inhSpikeMon": inhSpikeMon,
+                "excSpikeMon": excSpikeMon}
+                
 network_objs = {"neurons": neurons,
                 "Pe": Pe,
                 "Pi": Pi,
@@ -183,8 +191,7 @@ network_objs = {"neurons": neurons,
                 "con_ie": con_ie,
                 "con_ii": con_ii, 
                 "con_ei": con_ei,
-                "inhWeightMon": inhWeightMon,
-                "rateMon": rateMon}
+                "monitors": monitors}
     
 ### SIMULATION ################################################################
 print("Starting run function..")
@@ -193,6 +200,24 @@ if use_owens_algorithm:
 elif use_maltes_algorithm:
     mytools.run_old_algorithm(all_parameters, network_objs)
 print("Done simulating.")
+
+
+### SAVE RESULTS ##############################################################
+### When saving values to disk, we are not taking into account Brian units.
+### Threfore we are assigning standard units so that when recovering the 
+### saved files, one knows which units to assign to them.
+### time: second
+
+results = {}
+results["inhWeights"] = network_objs["inhWeightMon"].w # no unit actually!
+results["weight_times"] = network_objs["inhWeightMon"].t/second
+results["inh_spike_times"] = network_objs["inhSpikeMon"].t/second
+results["inh_spike_neuron_idxes"] = network_objs["inhSpikeMon"].i[:]
+results["exc_spike_times"] = network_objs["excSpikeMon"].t/second
+results["exc_spike_neuron_idxes"] = network_objs["excSpikeMon"].i[:]
+results["inh_rates"] = network_objs["rateMon"].A
+results["inh_rate_times"] = network_objs["rateMon"].t/second
+pickle.dump(results, open("results.p", "wb"))
 
 ### PLOTTING ##################################################################
 if do_plotting:

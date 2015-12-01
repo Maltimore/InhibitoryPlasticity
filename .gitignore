@@ -1,6 +1,7 @@
 connectivity_matrices
 __pycache__
 cpp_standalone
+results
 *.*~
 *.pyc
 *.save
