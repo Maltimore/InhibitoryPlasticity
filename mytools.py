@@ -241,7 +241,9 @@ def run_cpp_standalone(params, network_objs):
     from brian2.units import Unit
     from brian2 import check_units, implementation, device, prefs, NeuronGroup, Network
 
-    tempdir = os.path.join(params["program_dir"], 'cpp_standalone')
+    tempdir = os.path.join(params["program_dir"], "cpp_standalone")
+    tempdir = os.path.join(tempdir, "c_" + str(params["sigma_c"]) + \
+                           "_s_" + str(params["sigma_s"]))
     if not os.path.exists(tempdir):
         os.makedirs(tempdir)
                   
