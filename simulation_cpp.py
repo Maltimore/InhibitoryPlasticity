@@ -45,8 +45,8 @@ all_parameters = { \
     "load_connectivity_from_file": True,
     
     
-    "prep_time" : 10*second    ,   # give Network time to stabilize
-    "simtime" : 10001*ms       ,   # Simulation time
+    "prep_time" : 1000*second  ,   # give Network time to stabilize
+    "simtime" :  100001*ms     ,   # Simulation time
     "dt" : .1*ms               ,   # Simulation time step
     "plot_n_weights" : 200     ,   # Number of weights to be plotted
     "sigma_c" : "infinity"            ,   # connectivity spread

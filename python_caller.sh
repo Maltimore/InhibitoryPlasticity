@@ -1,7 +1,7 @@
 #!/bin/sh
 #$ -V -cwd
 #$ -q cognition-all.q
-#$ -t 1-2
+#$ -t 1-65
 #$ -N mytest
 #$ -e ./errors/$JOB_NAME.task_id_$TASK_ID
 #$ -o ./text_output/$JOB_NAME.task_id_$TASK_ID
