@@ -266,8 +266,7 @@ def run_cpp_standalone(params, network_objs):
     N = params["NI"] # this is the amount of neurons with variable synaptic strength
     Noffset = params["NE"]
     neurons = network_objs["neurons"]
-    con = network_objs["con_ei"]
-    rho0_dt = params["rho_0"]/second * params["rate_interval"]
+    params["rho0_dt"] = params["rho_0"]/second * params["rate_interval"]
     mkl_threads = 1
 
 
@@ -387,8 +386,8 @@ def run_cpp_standalone(params, network_objs):
         return std::max({wmin}, std::min(w, {wmax}));
     }}
     '''.format(r_hat=device_get_array_name(kg.variables['r_hat']), 
-               eta=params["eta"], rho0_dt = rho0_dt, wmin='0.0',
-               wmax=params["wmax"])
+               eta=params["eta"], rho0_dt = params["rho0_dt"], 
+               wmin=params["wmin"], wmax=params["wmax"])
     
 
     @implementation('cpp', custom_code)
@@ -406,11 +405,10 @@ def run_cpp_standalone(params, network_objs):
     params["update_weights"] = update_weights
     
     
-    temp_objs = network_objs.copy()
-    temp_objs.pop("inhWeightMon")
-    temp_objs.pop("rateMon")
-    net = Network(list(set(temp_objs.values())))    
-    net = Network()
+#    temp_objs = network_objs.copy()
+#    temp_objs.pop("inhWeightMon")
+#    temp_objs.pop("rateMon")
+    net = Network(list(set(network_objs.values())))    
     
     if not params["do_run"]:
         print("Running the network was not desired")
@@ -423,7 +421,7 @@ def run_cpp_standalone(params, network_objs):
         build = CurrentDeviceProxy.__getattr__(device, 'build')
         build(directory=tempdir, compile=True, run=True, debug=False, 
               additional_source_files=additional_source_files)
-
+        print("Prep time run complete.", flush=True)
     # Add the Monitors only now so we don't record unnecessarily much.
     net.add(network_objs["inhWeightMon"])
     net.add(network_objs["rateMon"])        

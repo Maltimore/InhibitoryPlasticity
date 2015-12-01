@@ -40,13 +40,13 @@ all_parameters = { \
     "w_ee" : .3 * scaling_factor*nS,  	
     "w_ie" : .3  * scaling_factor*nS,	
     "w_ii" : w_ii,  	
-    "wmin" : 0,
-    "wmax" : w_ii * 100 / nS,
+    "wmin" : float(0),
+    "wmax" : float(w_ii * 100 / nS),
     "save_connectivity_to_file": True,
     "load_connectivity_from_file": True,
     
     
-    "prep_time" : 100*s        ,   # give Network time to stabilize
+    "prep_time" : 10*second    ,   # give Network time to stabilize
     "simtime" : 20001*ms       ,   # Simulation time
     "dt" : .1*ms               ,   # Simulation time step
     "plot_n_weights" : 200     ,   # Number of weights to be plotted
@@ -110,7 +110,7 @@ connectivity_mat = mytools.create_connectivity_mat(
                                         reload_from_file = True,
                                         filename = "exc_to_exc",
                                         dir_name = "connectivity_matrices")
-con_ee = Synapses(Pe, Pe, pre="""g_ampa += w_ee""")
+con_ee = Synapses(Pe, Pe, pre="""g_ampa += w_ee""", name="con_ee")
 con_ee.connect(connectivity_mat[:,0], connectivity_mat[:,1])
 
 connectivity_mat = mytools.create_connectivity_mat(
@@ -124,7 +124,7 @@ connectivity_mat = mytools.create_connectivity_mat(
                                         reload_from_file = True,
                                         filename = "exc_to_inh",
                                         dir_name = "connectivity_matrices")
-con_ie = Synapses(Pe, Pi, pre='g_ampa += w_ie')
+con_ie = Synapses(Pe, Pi, pre='g_ampa += w_ie', name="con_ie")
 con_ie.connect(connectivity_mat[:,0], connectivity_mat[:,1])
 
 connectivity_mat = mytools.create_connectivity_mat(
@@ -138,7 +138,7 @@ connectivity_mat = mytools.create_connectivity_mat(
                                         reload_from_file = True,
                                         filename = "inh_to_inh",
                                         dir_name = "connectivity_matrices")
-con_ii = Synapses(Pi, Pi, pre='g_gaba += w_ii')
+con_ii = Synapses(Pi, Pi, pre='g_gaba += w_ii', name="con_ii")
 con_ii.connect(connectivity_mat[:,0], connectivity_mat[:,1])
 
 print("Creating plastic synapses..")
@@ -158,7 +158,8 @@ con_ei = Synapses(Pi, Pe,
                            ''',
                   pre='''g_gaba += w*scaling_factor*nS
                          w += 1e-11
-                         ''')
+                         ''',
+                         name="con_ei")
 con_ei.connect(ei_conn_mat[:,0], ei_conn_mat[:,1])
 con_ei.w = start_weight
 all_parameters["ei_conn_mat"] = ei_conn_mat # saving this particular conn.
