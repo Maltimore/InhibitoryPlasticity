@@ -207,6 +207,13 @@ print("Done simulating.")
 ### Threfore we are assigning standard units so that when recovering the 
 ### saved files, one knows which units to assign to them.
 ### time: second
+### weights: nS
+resultspath = program_dir + "/results"
+resultfile = "sigma_s_" + str(all_parameters["sigma_s"]) + "_" + \
+             "sigma_c_" + str(all_parameters["sigma_c"]) + "_" + \
+             "prep_" + str(all_parameters["prep_time"]/second) + "_seconds"
+if not os.path.exists(resultspath):
+    os.makedirs(resultspath)
 
 results = {}
 results["inhWeights"] = network_objs["inhWeightMon"].w # no unit actually!
@@ -217,7 +224,7 @@ results["exc_spike_times"] = network_objs["excSpikeMon"].t/second
 results["exc_spike_neuron_idxes"] = network_objs["excSpikeMon"].i[:]
 results["inh_rates"] = network_objs["rateMon"].A
 results["inh_rate_times"] = network_objs["rateMon"].t/second
-pickle.dump(results, open("results.p", "wb"))
+pickle.dump(results, open(resultspath + "/" + resultfile, "wb"))
 
 ### PLOTTING ##################################################################
 if do_plotting:
