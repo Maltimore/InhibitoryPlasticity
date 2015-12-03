@@ -80,6 +80,7 @@ def rate_sensor(firing_rates, x_NI, sigma_s):
     sensor_rates = np.zeros(N_neurons)
     for neuron_idx in np.arange(N_neurons):
         y_vec_temp = np.roll(y_vec, int(neuron_idx - (mu/x_NI)))
+        
         sensor_rates[neuron_idx] = np.dot(y_vec_temp, firing_rates)
     
     return sensor_rates
@@ -342,9 +343,10 @@ def run_cpp_standalone(params, network_objs):
     kg = NeuronGroup(N, model=rate_vars, name='kernel_rates')
     kg.active = False
     kg.k = k #kernel in the spatial domain
+    r_hat_mon = StateMonitor(kg, "r_hat", record=True,
+                             dt=params["rate_interval"], when="start", order=2)
     network_objs["dummygroup"] = kg
-
-
+    network_objs["r_hat_mon"] = r_hat_mon
     
     main_code = '''
     hand = init_dfti(); 
@@ -375,7 +377,7 @@ def run_cpp_standalone(params, network_objs):
     @implementation('cpp', custom_code)
     @check_units(_=Unit(1), result=Unit(1), discard_units=True)
     def spatial_filter(_):
-        kg.r_hat = irfft(K * rfft(neurons.A), N).real
+        kg.r_hat = irfft(K * rfft(network_objs["Pi"].A), N).real
         neurons.A = 0
         return 0
     network_objs["neurons"].run_regularly('dummy = spatial_filter()',
@@ -397,7 +399,10 @@ def run_cpp_standalone(params, network_objs):
     @implementation('cpp', custom_code)
     @check_units(w=Unit(1), i_pre=Unit(1), result=Unit(1), discard_units=True)
     def update_weights(w, i_pre):
-        del_W = params["eta"]*(kg.r_hat - rho0_dt)
+        if  network_objs["neurons"].t/ms < .01:
+            print("skipping first step")
+            return w
+        del_W = params["eta"]*(kg.r_hat - params["rho0_dt"])
         w += del_W[i_pre]
         np.clip(w, params["wmin"], params["wmax"], out=w)
         return w
@@ -444,6 +449,14 @@ def run_old_algorithm(params, network_objs):
     network_objs.pop("monitors")
     network_objs.update(monitors)
     
+    rate_vars =  '''r_hat : 1'''
+    kg = NeuronGroup(params["NI"], model=rate_vars, name='kernel_rates')
+    kg.active = False
+    r_hat_mon = StateMonitor(kg, "r_hat", record=True, 
+                             dt=params["rate_interval"], when="start", order=2)
+    network_objs["dummygroup"] = kg
+    network_objs["r_hat_mon"] = r_hat_mon
+    
     @network_operation(dt=params["rate_interval"], order=1)
     def local_update(t):
         if t/ms == 0:
@@ -456,7 +469,7 @@ def run_old_algorithm(params, network_objs):
         firing_rates = rate_sensor(firing_rates, 
                                    params["x_NI"],
                                    params["sigma_s"])
-        
+        network_objs["dummygroup"].r_hat = firing_rates
         temp_w_holder = np.array(network_objs["con_ei"].w)
         for neuron_idx in np.arange(params["NI"]):
             delta_w = params["eta"] * (firing_rates[neuron_idx] - params["rho_0"])
