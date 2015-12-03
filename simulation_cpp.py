@@ -45,7 +45,7 @@ all_parameters = { \
     "load_connectivity_from_file": True,
     
     
-    "prep_time" : 1000*second  ,   # give Network time to stabilize
+    "prep_time" : 10*second    ,   # give Network time to stabilize
     "simtime" :  100001*ms     ,   # Simulation time
     "dt" : .1*ms               ,   # Simulation time step
     "plot_n_weights" : 200     ,   # Number of weights to be plotted
@@ -216,15 +216,22 @@ if not os.path.exists(resultspath):
 results = {}
 results["inhWeights"] = network_objs["inhWeightMon"].w # no unit actually!
 results["weight_times"] = network_objs["inhWeightMon"].t/second
+results["inh_rates"] = network_objs["rateMon"].A
+results["inh_rate_times"] = network_objs["rateMon"].t/second
+results["prep_time"] = all_parameters["prep_time"]
+if not os.path.exists(resultspath + "/rates_and_weights"):
+    os.makedirs(resultspath + "/rates_and_weights")
+pickle.dump(results, open(resultspath + "/rates_and_weights/"
+                          + resultfile, "wb"))
 results["inh_spike_times"] = network_objs["inhSpikeMon"].t/second
 results["inh_spike_neuron_idxes"] = network_objs["inhSpikeMon"].i[:]
 results["exc_spike_times"] = network_objs["excSpikeMon"].t/second
 results["exc_spike_neuron_idxes"] = network_objs["excSpikeMon"].i[:]
-results["inh_rates"] = network_objs["rateMon"].A
-results["inh_rate_times"] = network_objs["rateMon"].t/second
-results["prep_time"] = all_parameters["prep_time"]
-pickle.dump(results, open(resultspath + "/" + resultfile, "wb"))
-
+if not os.path.exists(resultspath + "/all_data"):
+    os.makedirs(resultspath + "/all_data")
+pickle.dump(results, open(resultspath + "/all_data/"
+                          + resultfile, "wb"))
+                          
 ### PLOTTING ##################################################################
 if do_plotting:
     import plot_script
