@@ -9,20 +9,25 @@ def _find_nearest(array,value):
     idx = np.argmin(distances)
     return idx
     
-def _exp_function(x_vec, mu, scale):
-    # catch the case where scale == 0
+def _exp_function(x_vec, mu, scale):    
+    n = len(x_vec)
     if scale == 0:
+        # catch the case where scale == 0
         y_vec = np.zeros(len(x_vec))
-        y_vec[x_vec==mu] = 1
-        return y_vec
-    elif scale == "ininity":
+        if n%2 != 0:
+            # if n is even, the center should be at n/2 + 1
+            centerpos = int(n/2) + 1
+        else:
+            centerpos = int(n/2)
+        y_vec[centerpos] = 1
+        mu += 1
+    elif scale == "infinity":
         # if an infinitely big sensor is desired, return uniform weights
         y_vec = np.ones(len(x_vec))
-        y_vec /= np.sum(y_vec)
-        return y_vec
-    #else, compute normal exponential function
-    yvec = np.exp(-np.abs(x_vec - mu) / scale)
-    return yvec / np.sum(yvec)
+    else:
+        #else, compute normal exponential function
+        y_vec = np.exp(-np.abs(x_vec - mu) / scale)
+    return y_vec / np.sum(y_vec)
 
 ### TOOL FUNCTIONS ############################################################
 def parse_argvs(argv):

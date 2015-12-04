@@ -10,7 +10,7 @@ start_scope()
 
 
 use_maltes_algorithm = False
-use_cpp = True
+use_cpp = False
 use_owens_algorithm = not use_maltes_algorithm
 if use_maltes_algorithm:
     # in this case, override my earlier decision to use cpp because it was
@@ -63,7 +63,7 @@ all_parameters = { \
     "dt" : .1*ms               ,   # Simulation time step
     "plot_n_weights" : 200     ,   # Number of weights to be plotted
     "sigma_c" : 200            ,   # connectivity spread
-    "sigma_s" : 200            ,   # sensor width adapted to spacing of inh cells
+    "sigma_s" : 0            ,   # sensor width adapted to spacing of inh cells
     "start_weight" : 8         ,   # starting weight for the inh to exc connections
     "do_plotting" : False      ,  
     "do_global_update" : False , 
@@ -104,8 +104,9 @@ neurons = NeuronGroup(NE+NI, model=eqs_neurons, threshold='v > vt',
                       reset="""v = el
                                A += 1""",
                       refractory=5*ms)
-Pe = neurons[:NE]
-Pi = neurons[NE:]
+Pi = neurons[:NI]
+Pe = neurons[NI:]
+
 neurons.v = np.random.uniform(el, vt, len(neurons))*volt 
 
 ### SYNAPSES ##################################################################
@@ -234,6 +235,9 @@ results["inh_spike_neuron_idxes"] = network_objs["inhSpikeMon"].i[:]
 results["exc_spike_times"] = network_objs["excSpikeMon"].t/second
 results["exc_spike_neuron_idxes"] = network_objs["excSpikeMon"].i[:]
 results["r_hat"] = network_objs["r_hat_mon"].r_hat[:]
+results["sigma_s"] = all_parameters["sigma_s"]
+results["NI"] = all_parameters["NI"]
+results["x_NI"] = all_parameters["x_NI"]
 if not os.path.exists(resultspath + "/comparison"):
     os.makedirs(resultspath + "/comparison")
 if use_maltes_algorithm:

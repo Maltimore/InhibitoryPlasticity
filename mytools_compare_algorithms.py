@@ -9,19 +9,24 @@ def _find_nearest(array,value):
     idx = np.argmin(distances)
     return idx
     
-def _exp_function(x_vec, mu, scale):
-    # catch the case where scale == 0
+def _exp_function(x_vec, mu, scale):    
+    n = len(x_vec)
     if scale == 0:
+        # catch the case where scale == 0
         y_vec = np.zeros(len(x_vec))
-        y_vec[x_vec==mu] = 1
-        return y_vec
-    elif scale == "ininity":
+        if n%2 != 0:
+            # if n is even, the center should be at n/2 + 1
+            centerpos = int(n/2) + 1
+        else:
+            centerpos = int(n/2)
+        y_vec[centerpos] = 1
+        mu += 1
+    elif scale == "infinity":
         # if an infinitely big sensor is desired, return uniform weights
         y_vec = np.ones(len(x_vec))
-        y_vec /= np.sum(y_vec)
-        return y_vec
-    #else, compute normal exponential function
-    yvec = np.exp(-np.abs(x_vec - mu) / scale)
+    else:
+        #else, compute normal exponential function
+        yvec = np.exp(-np.abs(x_vec - mu) / scale)
     return yvec / np.sum(yvec)
 
 ### TOOL FUNCTIONS ############################################################
@@ -269,7 +274,7 @@ def run_cpp_standalone(params, network_objs):
                                        
     # Variable definitions
     N = params["NI"] # this is the amount of neurons with variable synaptic strength
-    Noffset = params["NE"]
+    Noffset = 0
     neurons = network_objs["neurons"]
     params["rho0_dt"] = params["rho_0"]/second * params["rate_interval"]
     mkl_threads = 1
@@ -337,6 +342,7 @@ def run_cpp_standalone(params, network_objs):
         d = np.roll(d, int(N/2+1))
         k = np.exp(-np.abs(d)/params["sigma_s"])
         k /= k.sum()
+#    k = np.roll(k, int(len(k)/2+1))
     rate_vars =  '''k : 1
                     r_hat : 1
                     r_hat_single : 1'''
@@ -399,13 +405,14 @@ def run_cpp_standalone(params, network_objs):
     @implementation('cpp', custom_code)
     @check_units(w=Unit(1), i_pre=Unit(1), result=Unit(1), discard_units=True)
     def update_weights(w, i_pre):
-        if  network_objs["neurons"].t/ms < .01:
-            print("skipping first step")
-            return w
+#        if  network_objs["neurons"].t/ms < .01:
+#            print("skipping first step")
+#            return w
         del_W = params["eta"]*(kg.r_hat - params["rho0_dt"])
         w += del_W[i_pre]
         np.clip(w, params["wmin"], params["wmax"], out=w)
         return w
+        
     network_objs["con_ei"].run_regularly('w = update_weights(w, i)',
                                          dt=params["rate_interval"],
                                          when='end', name='weightupdate')
@@ -459,9 +466,9 @@ def run_old_algorithm(params, network_objs):
     
     @network_operation(dt=params["rate_interval"], order=1)
     def local_update(t):
-        if t/ms == 0:
-            # if this is t = 0, skip the computation
-            return
+#        if t/ms == 0:
+#            # if this is t = 0, skip the computation
+#            return
         firing_rates = network_objs["Pi"].A / (params["rate_interval"] / second)
         network_objs["Pi"].A = 0
         
