@@ -2,6 +2,8 @@ from brian2 import *
 import numpy as np
 import pickle
 import os
+from mytools import _exp_function
+import scipy.ndimage as nd
 
 ### HELPER FUNCTIONS FOR TOOL FUNCTIONS #######################################
 def _find_nearest(array,value):
@@ -9,25 +11,6 @@ def _find_nearest(array,value):
     idx = np.argmin(distances)
     return idx
     
-def _exp_function(x_vec, mu, scale):    
-    n = len(x_vec)
-    if scale == 0:
-        # catch the case where scale == 0
-        y_vec = np.zeros(len(x_vec))
-        if n%2 != 0:
-            # if n is even, the center should be at n/2 + 1
-            centerpos = int(n/2) + 1
-        else:
-            centerpos = int(n/2)
-        y_vec[centerpos] = 1
-        mu += 1
-    elif scale == "infinity":
-        # if an infinitely big sensor is desired, return uniform weights
-        y_vec = np.ones(len(x_vec))
-    else:
-        #else, compute normal exponential function
-        yvec = np.exp(-np.abs(x_vec - mu) / scale)
-    return yvec / np.sum(yvec)
 
 ### TOOL FUNCTIONS ############################################################
 def parse_argvs(argv):
@@ -82,12 +65,23 @@ def rate_sensor(firing_rates, x_NI, sigma_s):
     x_vec = np.arange(N_neurons) * x_NI
     y_vec = _exp_function(x_vec, mu, sigma_s)
     
+    
     sensor_rates = np.zeros(N_neurons)
     for neuron_idx in np.arange(N_neurons):
         y_vec_temp = np.roll(y_vec, int(neuron_idx - (mu/x_NI)))
         
         sensor_rates[neuron_idx] = np.dot(y_vec_temp, firing_rates)
-    
+
+
+        
+    import matplotlib.pyplot as plt
+    plt.figure()
+    plt.plot(firing_rates)
+    print("Total firing rates (unsensed) are " + 
+          str(np.sum(abs(firing_rates))), flush=True)
+    sensor_rates = nd.filters.convolve(firing_rates, y_vec, mode='wrap')
+    plt.figure()
+    plt.plot(sensor_rates)
     return sensor_rates
 
 
@@ -331,24 +325,26 @@ def run_cpp_standalone(params, network_objs):
     # really do anything in the Simulation. It's just a dummy NeuronGroup
     # to hold an array to which he would like to have access to during runtime.   
     if params["sigma_s"] == "infinity":
-        k = np.ones(N)/N
+        k = np.ones(params["NI"])/params["NI"]
     elif params["sigma_s"] < 1e-3: 
-        k = np.zeros(N)
+        k = np.zeros(params["NI"])
         k[0] = 1
     else:
         intercell = params["x_NI"]
-        length = intercell*N
-        d = np.linspace(intercell-length/2, length/2, N)
-        d = np.roll(d, int(N/2+1))
+        length = intercell*params["NI"]
+        d = np.linspace(intercell-length/2, length/2, params["NI"])
+        d = np.roll(d, int(params["NI"]/2+1))
         k = np.exp(-np.abs(d)/params["sigma_s"])
         k /= k.sum()
-#    k = np.roll(k, int(len(k)/2+1))
+
     rate_vars =  '''k : 1
                     r_hat : 1
                     r_hat_single : 1'''
-    kg = NeuronGroup(N, model=rate_vars, name='kernel_rates')
+    kg = NeuronGroup(params["NI"], model=rate_vars, name='kernel_rates')
     kg.active = False
     kg.k = k #kernel in the spatial domain
+    params["kernel_to_export"] = k
+    
     r_hat_mon = StateMonitor(kg, "r_hat", record=True,
                              dt=params["rate_interval"], when="start", order=2)
     network_objs["dummygroup"] = kg
@@ -383,8 +379,10 @@ def run_cpp_standalone(params, network_objs):
     @implementation('cpp', custom_code)
     @check_units(_=Unit(1), result=Unit(1), discard_units=True)
     def spatial_filter(_):
-        kg.r_hat = irfft(K * rfft(network_objs["Pi"].A), N).real
-        neurons.A = 0
+        print("firing rates used for convolution are:")
+        print(network_objs["Pi"].A)        
+        kg.r_hat = irfft(K * rfft(network_objs["Pi"].A), params["NI"]).real
+        network_objs["neurons"].A = 0
         return 0
     network_objs["neurons"].run_regularly('dummy = spatial_filter()',
                           dt=params["rate_interval"], order=1,
@@ -408,9 +406,16 @@ def run_cpp_standalone(params, network_objs):
 #        if  network_objs["neurons"].t/ms < .01:
 #            print("skipping first step")
 #            return w
+        print("estimated firing rates are: ")        
+        print(kg.r_hat)
         del_W = params["eta"]*(kg.r_hat - params["rho0_dt"])
+        print("Delta w for i_pre = " + str(i_pre) + "is: ")
+        print(del_W[i_pre])
+
+        print("w before is: " + str(w))
         w += del_W[i_pre]
         np.clip(w, params["wmin"], params["wmax"], out=w)
+        print("updated w to be " + str(w))
         return w
         
     network_objs["con_ei"].run_regularly('w = update_weights(w, i)',
@@ -460,33 +465,53 @@ def run_old_algorithm(params, network_objs):
     kg = NeuronGroup(params["NI"], model=rate_vars, name='kernel_rates')
     kg.active = False
     r_hat_mon = StateMonitor(kg, "r_hat", record=True, 
-                             dt=params["rate_interval"], when="start", order=2)
+                             dt=params["rate_interval"], when="end", order=2)
     network_objs["dummygroup"] = kg
     network_objs["r_hat_mon"] = r_hat_mon
-    
-    @network_operation(dt=params["rate_interval"], order=1)
+
+
+    # create kernel to export for comparison
+    N_neurons = params["NI"]
+    mu = int(N_neurons/2) * params["x_NI"]
+    x_vec = np.arange(N_neurons) * params["x_NI"]
+    y_vec = _exp_function(x_vec, mu, params["sigma_s"])
+    params["kernel_to_export"] = y_vec
+
+    @network_operation(dt=params["rate_interval"], when='end', order=1)
     def local_update(t):
 #        if t/ms == 0:
 #            # if this is t = 0, skip the computation
 #            return
+        print("Local update was called at t=" + str(t))       
         firing_rates = network_objs["Pi"].A / (params["rate_interval"] / second)
+        print("Firing rates used for convolution are: ")
+        print(firing_rates)
+        
         network_objs["Pi"].A = 0
         
         # apply the rate sensor to the single firing rates
         firing_rates = rate_sensor(firing_rates, 
                                    params["x_NI"],
                                    params["sigma_s"])
+        print("estimated firing rates are: ")
+        print(firing_rates)        
+
         network_objs["dummygroup"].r_hat = firing_rates
-        temp_w_holder = np.array(network_objs["con_ei"].w)
+        temp_w_holder = np.array(network_objs["con_ei"].w[:])
+        delta_w_counter = 0
         for neuron_idx in np.arange(params["NI"]):
             delta_w = params["eta"] * (firing_rates[neuron_idx] - params["rho_0"])
             idxes = params["ei_conn_mat"][:,0] == neuron_idx
             temp_w_holder[idxes] += delta_w
+            
+            delta_w_counter += abs(delta_w)
+        print(temp_w_holder)
+        print("Absolute delta w is: ")
+        print(delta_w_counter)
         # set below 0 weights to zero.
         temp_w_holder = clip(temp_w_holder, params["wmin"], params["wmax"])
         network_objs["con_ei"].w = temp_w_holder
     
     network_objs["local_update"] = local_update
     net = Network(list(set(network_objs.values())))
-    net.run(params["simtime"], report="stdout",
-            profile= params["do_profiling"], namespace = params)
+    net.run(params["simtime"], report="stdout", namespace = params)

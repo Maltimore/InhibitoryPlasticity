@@ -46,7 +46,7 @@ all_parameters = { \
     "memc" : 200.0*pfarad      , # Membrane capacitance
     "bgcurrent" : 200*pA       , # External current
     "fixed_in_degree" : .02    , # amount of incoming connections
-    "eta" : .05                , # Learning rate
+    "eta" : .01                , # Learning rate
     "rho_0" : 15               , # Target firing rate
     "scaling_factor" : scaling_factor,    
     "w_ee" : .3 * scaling_factor*nS,  	
@@ -59,11 +59,11 @@ all_parameters = { \
     
     
     "prep_time" : 0*second    ,   # give Network time to stabilize
-    "simtime" :  2005*ms      ,   # Simulation time
+    "simtime" :  1005*ms      ,   # Simulation time
     "dt" : .1*ms               ,   # Simulation time step
     "plot_n_weights" : 200     ,   # Number of weights to be plotted
     "sigma_c" : 200            ,   # connectivity spread
-    "sigma_s" : 0            ,   # sensor width adapted to spacing of inh cells
+    "sigma_s" : 100     ,   # sensor width adapted to spacing of inh cells
     "start_weight" : 8         ,   # starting weight for the inh to exc connections
     "do_plotting" : False      ,  
     "do_global_update" : False , 
@@ -107,7 +107,7 @@ neurons = NeuronGroup(NE+NI, model=eqs_neurons, threshold='v > vt',
 Pi = neurons[:NI]
 Pe = neurons[NI:]
 
-neurons.v = np.random.uniform(el, vt, len(neurons))*volt 
+neurons.v = np.random.uniform(el, vt-2*mV, len(neurons))*volt 
 
 ### SYNAPSES ##################################################################
 print("Creating nonplastic synapses..")
@@ -238,6 +238,7 @@ results["r_hat"] = network_objs["r_hat_mon"].r_hat[:]
 results["sigma_s"] = all_parameters["sigma_s"]
 results["NI"] = all_parameters["NI"]
 results["x_NI"] = all_parameters["x_NI"]
+results["kernel_used"] = all_parameters["kernel_to_export"]
 if not os.path.exists(resultspath + "/comparison"):
     os.makedirs(resultspath + "/comparison")
 if use_maltes_algorithm:

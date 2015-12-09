@@ -16,7 +16,7 @@ scaling_factor = np.sqrt(10000 / Ntot)
 x_NI = int(NE/NI)
 w_ii =  3  * scaling_factor*nS
 
-all_parameters = { \
+params = { \
     "Ntot": Ntot,
     "NE" :  NE                 , # Number of excitatory cells
     "NI" :  NI                 , # Number of inhibitory cells
@@ -62,20 +62,20 @@ all_parameters = { \
 if __name__ == "__main__":
     user_params = mytools.parse_argvs(sys.argv)
     if user_params != "invalid":
-        all_parameters["sigma_s"] = user_params[0]
-        all_parameters["sigma_c"] = user_params[1]
+        params["sigma_s"] = user_params[0]
+        params["sigma_c"] = user_params[1]
     else:
         print("User input was invalid.")
 
 # extract variables from the dictionary to the global namespace
-for key,val in all_parameters.items():
+for key,val in params.items():
     exec(key + '=val')
     
 np.random.seed(1337)
 use_maltes_algorithm = False
 use_owens_algorithm = not use_maltes_algorithm
-all_parameters["cpp_standalone"] = use_owens_algorithm
-if all_parameters["cpp_standalone"]:
+params["cpp_standalone"] = use_owens_algorithm
+if params["cpp_standalone"]:
     set_device("cpp_standalone")
 
 ### NEURONS ###################################################################
@@ -161,7 +161,7 @@ con_ei = Synapses(Pi, Pe,
                          name="con_ei")
 con_ei.connect(ei_conn_mat[:,0], ei_conn_mat[:,1])
 con_ei.w = start_weight
-all_parameters["ei_conn_mat"] = ei_conn_mat # saving this particular conn.
+params["ei_conn_mat"] = ei_conn_mat # saving this particular conn.
                                             # matrix for later use
 
 ### MONITORS ##################################################################
@@ -194,9 +194,9 @@ network_objs = {"neurons": neurons,
 ### SIMULATION ################################################################
 print("Starting run function..")
 if use_owens_algorithm:
-    mytools.run_cpp_standalone(all_parameters, network_objs)
+    mytools.run_cpp_standalone(params, network_objs)
 elif use_maltes_algorithm:
-    mytools.run_old_algorithm(all_parameters, network_objs)
+    mytools.run_old_algorithm(params, network_objs)
 print("Done simulating.")
 
 
@@ -207,9 +207,9 @@ print("Done simulating.")
 ### time: second
 ### weights: nS
 resultspath = program_dir + "/results"
-resultfile = "sigma_s_" + str(all_parameters["sigma_s"]) + "_" + \
-             "sigma_c_" + str(all_parameters["sigma_c"]) + "_" + \
-             "prep_" + str(int(all_parameters["prep_time"]/second)) + "_seconds"
+resultfile = "sigma_s_" + str(params["sigma_s"]) + "_" + \
+             "sigma_c_" + str(params["sigma_c"]) + "_" + \
+             "prep_" + str(int(params["prep_time"]/second)) + "_seconds"
 if not os.path.exists(resultspath):
     os.makedirs(resultspath)
 
@@ -218,7 +218,7 @@ results["inhWeights"] = network_objs["inhWeightMon"].w # no unit actually!
 results["weight_times"] = network_objs["inhWeightMon"].t/second
 results["inh_rates"] = network_objs["rateMon"].A
 results["inh_rate_times"] = network_objs["rateMon"].t/second
-results["prep_time"] = all_parameters["prep_time"]
+results["prep_time"] = params["prep_time"]
 if not os.path.exists(resultspath + "/rates_and_weights"):
     os.makedirs(resultspath + "/rates_and_weights")
 pickle.dump(results, open(resultspath + "/rates_and_weights/"
@@ -238,6 +238,6 @@ if do_plotting:
     imp.reload(plot_script) # this is just for development purposes
     rate_holder = network_objs["rateMon"].A[:, 1:] / rate_interval
     w_holder = network_objs["inhWeightMon"].w
-    plot_script.create_plots(all_parameters, w_holder, rate_holder)
+    plot_script.create_plots(params, w_holder, rate_holder)
 else:
     print("Plotting was not desired.")
