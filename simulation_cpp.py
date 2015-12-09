@@ -47,7 +47,7 @@ params = { \
     "load_connectivity_from_file": True,
     
     
-    "prep_time" : 10*second    ,   # give Network time to stabilize
+    "prep_time" : 1000*second    ,   # give Network time to stabilize
     "simtime" :  100001*ms     ,   # Simulation time
     "dt" : .1*ms               ,   # Simulation time step
     "plot_n_weights" : 200     ,   # Number of weights to be plotted
@@ -64,8 +64,8 @@ params = { \
 if __name__ == "__main__":
     user_params = mytools.parse_argvs(sys.argv)
     if user_params != "invalid":
-        params["sigma_s"] = user_params[0]
-        params["sigma_c"] = user_params[1]
+        params["sigma_s"] = user_params[0] / neuron_scaling
+        params["sigma_c"] = user_params[1] / neuron_scaling
     else:
         print("User input was invalid.")
 

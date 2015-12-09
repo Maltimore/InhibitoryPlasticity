@@ -31,19 +31,19 @@ def _exp_function(x_vec, mu, scale):
 
 ### TOOL FUNCTIONS ############################################################
 def parse_argvs(argv):
-    n_sensors = 13
-    n_connectivities = 5
+    # these values have to be divided by two later if we have just 5000 
+    # neurons
+    sigma_s = [0.,   100., 300., 500.,  900., 1300., 1700., 2100., "infinity"]
+    sigma_c = [200., 400., 600., 900., 1300., 2100., 2900., 3700., "infinity"]    
+
+
+    n_sensors = len(sigma_s)
+    n_connectivities = len(sigma_c)
     n_total = n_sensors * n_connectivities
     
-    sensor_widths = list(2 ** np.arange(12))
-    sensor_widths[0] = 0
-    sensor_widths.append("infinity")
-    sensor_widths = [val for val in sensor_widths for _ in range(n_connectivities)]
-    
-    connectivities = [100, 300, 600, 1000, "infinity"] * n_sensors
-    
-    all_args = list(zip(sensor_widths, connectivities))
-    
+    sigma_s = [val for val in sigma_s for _ in range(n_connectivities)]
+    sigma_c = sigma_c * n_sensors
+    all_args = list(zip(sigma_s, sigma_c))
     
     
     if len(argv) < 2:
