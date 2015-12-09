@@ -9,12 +9,13 @@ imp.reload(mytools)
 start_scope()
 
 ### PARAMETERS ################################################################
-Ntot = 10000
+neuron_scaling = 2
+Ntot = int(10000 / neuron_scaling)
 NE = int(Ntot * 4/5)
 NI = int(Ntot / 5)
-scaling_factor = np.sqrt(10000 / Ntot)
+scaling_f = np.sqrt(neuron_scaling)
 x_NI = int(NE/NI)
-w_ii =  3  * scaling_factor*nS
+
 
 params = { \
     "Ntot": Ntot,
@@ -35,12 +36,13 @@ params = { \
     "fixed_in_degree" : .02    , # amount of incoming connections
     "eta" : .05                , # Learning rate
     "rho_0" : 15               , # Target firing rate
-    "scaling_factor" : scaling_factor,    
-    "w_ee" : .3 * scaling_factor*nS,  	
-    "w_ie" : .3  * scaling_factor*nS,	
-    "w_ii" : w_ii,  	
+    "scaling_f" : scaling_f,    
+    "w_ee" : .3 * scaling_f*nS,  	
+    "w_ie" : .3  * scaling_f*nS,	
+    "w_ii" : 3  * scaling_f*nS,  	
+    "w_ei" : 3 * scaling_f,   # starting weight for the inh to exc connections
     "wmin" : float(0),
-    "wmax" : float(w_ii * 100 / nS),
+    "wmax" : float(300),
     "save_connectivity_to_file": True,
     "load_connectivity_from_file": True,
     
@@ -51,7 +53,7 @@ params = { \
     "plot_n_weights" : 200     ,   # Number of weights to be plotted
     "sigma_c" : "infinity"            ,   # connectivity spread
     "sigma_s" : 200            ,   # sensor width adapted to spacing of inh cells
-    "start_weight" : 8         ,   # starting weight for the inh to exc connections
+
     "do_plotting" : False      ,  
     "do_global_update" : False , 
     "do_local_update" : False  , 
@@ -94,7 +96,7 @@ neurons = NeuronGroup(NE+NI, model=eqs_neurons, threshold='v > vt',
                       refractory=5*ms)
 Pe = neurons[:NE]
 Pi = neurons[NE:]
-neurons.v = np.random.uniform(el, vt, len(neurons))*volt 
+neurons.v = np.random.uniform(el, vt-2*mV, len(neurons))*volt 
 
 ### SYNAPSES ##################################################################
 print("Creating nonplastic synapses..")
@@ -153,14 +155,13 @@ ei_conn_mat = mytools.create_connectivity_mat(
                                         filename = "inh_to_exc",
                                         dir_name = "connectivity_matrices")
 con_ei = Synapses(Pi, Pe,
-                  model='''w : 1
-                           ''',
-                  pre='''g_gaba += w*scaling_factor*nS
+                  model='''w : 1''',
+                  pre='''g_gaba += w*scaling_f*nS
                          w += 1e-11
-                         ''',
+                      ''',
                          name="con_ei")
 con_ei.connect(ei_conn_mat[:,0], ei_conn_mat[:,1])
-con_ei.w = start_weight
+con_ei.w = w_ei
 params["ei_conn_mat"] = ei_conn_mat # saving this particular conn.
                                             # matrix for later use
 

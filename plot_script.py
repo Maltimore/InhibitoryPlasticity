@@ -10,7 +10,7 @@ imp.reload(mytools)
 # this needs some work#########################################################
 #results = pickle.load( open( "results.p", "rb" ) )
 
-
+plot_n_rates = 200
 def create_plots(params, w_holder, rate_holder):
     print("Creating plots..")
     N_inh_neurons = rate_holder.shape[0]
