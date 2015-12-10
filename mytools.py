@@ -29,8 +29,10 @@ def _exp_function(x_vec, mu, scale):
         y_vec = np.exp(-np.abs(x_vec - mu) / scale)
     return y_vec / np.sum(y_vec)
 
+
+
 ### TOOL FUNCTIONS ############################################################
-def parse_argvs(argv):
+def lookuptable():
     # these values have to be divided by two later if we have just 5000 
     # neurons
     sigma_s = [0.,   100., 300., 500.,  900., 1300., 1700., 2100., np.infty]
@@ -39,12 +41,14 @@ def parse_argvs(argv):
 
     n_sensors = len(sigma_s)
     n_connectivities = len(sigma_c)
-    n_total = n_sensors * n_connectivities
     
     sigma_s = [val for val in sigma_s for _ in range(n_connectivities)]
     sigma_c = sigma_c * n_sensors
-    all_args = list(zip(sigma_s, sigma_c))
-    
+    return list(zip(sigma_s, sigma_c))
+
+def parse_argvs(argv):
+    all_args = lookuptable()
+    n_total = len(all_args)
     
     if len(argv) < 2:
         print("Call for simulation didn't receive enough arguments.")
