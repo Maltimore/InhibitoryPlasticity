@@ -235,8 +235,7 @@ def create_connectivity_mat(sigma_c = 500,
     return connectivity_mat
 
 
-def compute_sparseness(rate_holder):
-    rates = rate_holder[:,-1]    
+def compute_sparseness(rates):    
     NI = len(rates)
     sparseness = ((np.sum(rates)/NI)**2) / (np.sum(rates**2)/NI)
     return sparseness
