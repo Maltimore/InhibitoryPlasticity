@@ -1,4 +1,4 @@
-print("Python script is running!")
+print("Python script is running!", flush=True)
 from brian2 import *
 import numpy as np
 import mytools
@@ -48,7 +48,7 @@ params = { \
     "load_connectivity_from_file": True,
     
     
-    "prep_time" : 10*second    ,   # give Network time to stabilize
+    "prep_time" : 20000*second    ,   # give Network time to stabilize
     "simtime" :  300.001*second,   # Simulation time
     "dt" : .1*ms               ,   # Simulation time step
     "plot_n_weights" : 200     ,   # Number of weights to be plotted

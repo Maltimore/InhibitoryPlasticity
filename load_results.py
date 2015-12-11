@@ -6,7 +6,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 
-prep_time = 2000 # seconds
+prep_time = 10 # seconds
 
 
 program_dir = os.getcwd()
@@ -25,6 +25,7 @@ sq_error_vec = np.empty(len(lookuptable))
 sq_error_vec[:] = np.NaN
 avg_rate_vec = np.empty(len(lookuptable))
 avg_rate_vec[:] = np.NaN
+
 for table_idx in np.arange(len(lookuptable)):
     sigma_s, sigma_c = lookuptable[table_idx,:]
     sigma_s /= 2
@@ -37,8 +38,6 @@ for table_idx in np.arange(len(lookuptable)):
     try:
         results = pickle.load(open(program_dir + "/results/rates_and_weights/" 
                                + resultfile, "rb"))
-        simtime = 100 # seconds (has to be seconds!!)
-        rho_0 = 15 # Hz
         simtime = results["simtime"]
         rho_0 = results["rho_0"]
     except:
@@ -57,6 +56,8 @@ for table_idx in np.arange(len(lookuptable)):
     sparseness_vec[table_idx] = tmp_sparseness / int(simtime)
     sq_error_vec[table_idx] = tmp_sq_error / int(simtime)
     avg_rate_vec[table_idx] = np.average(results["inh_rates"])
+
+
     
 sparseness_vec_m = np.ma.array (sparseness_vec, mask=np.isnan(sparseness_vec))
 sq_error_vec_m = np.ma.array (sq_error_vec, mask=np.isnan(sq_error_vec))
@@ -84,14 +85,18 @@ def plot_heatmap(data, all_sigma_s, all_sigma_c, invert=False):
     fig.colorbar(heatmap)
     return ax
 
+# Sparseness plot
 ax = plot_heatmap(sparseness_mat, all_sigma_s, all_sigma_c, invert=True)
 ax.set_title("Sparseness")
+# Squared error plot
 ax = plot_heatmap(sq_error_mat, all_sigma_s, all_sigma_c)
 ax.set_title("Squared error")
+# Average rates plot
 ax = plot_heatmap(avg_rate_mat, all_sigma_s, all_sigma_c)
 ax.set_title("Average rates")
 
 
+# Firing rate per diffusion
 rate_per_diffusion = np.ma.average(avg_rate_mat, axis=1)
 fig, ax = plt.subplots(figsize=(8, 8))
 ax.plot(rate_per_diffusion)
