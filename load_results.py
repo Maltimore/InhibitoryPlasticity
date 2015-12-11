@@ -7,8 +7,7 @@ import matplotlib.pyplot as plt
 
 
 prep_time = 2000 # seconds
-simtime = 100 # seconds (has to be seconds!!)
-rho_0 = 15 # Hz
+
 
 program_dir = os.getcwd()
 lookuptable = np.array(mytools.lookuptable())
@@ -24,6 +23,8 @@ sparseness_vec = np.empty(len(lookuptable))
 sparseness_vec[:] = np.NaN
 sq_error_vec = np.empty(len(lookuptable))
 sq_error_vec[:] = np.NaN
+avg_rate_vec = np.empty(len(lookuptable))
+avg_rate_vec[:] = np.NaN
 for table_idx in np.arange(len(lookuptable)):
     sigma_s, sigma_c = lookuptable[table_idx,:]
     sigma_s /= 2
@@ -32,10 +33,14 @@ for table_idx in np.arange(len(lookuptable)):
     resultfile = "sigma_s_" + str(sigma_s) + "_" + \
                  "sigma_c_" + str(sigma_c) + "_" + \
                  "prep_" + str(int(prep_time)) + "_seconds"
-    
+    # open file
     try:
         results = pickle.load(open(program_dir + "/results/rates_and_weights/" 
                                + resultfile, "rb"))
+        simtime = 100 # seconds (has to be seconds!!)
+        rho_0 = 15 # Hz
+        simtime = results["simtime"]
+        rho_0 = results["rho_0"]
     except:
         print("Failed for table index " + str(table_idx) +
               " with sigma_s = " + str(sigma_s) + 
@@ -51,14 +56,17 @@ for table_idx in np.arange(len(lookuptable)):
         tmp_sq_error += np.average(np.square(rates - rho_0))
     sparseness_vec[table_idx] = tmp_sparseness / int(simtime)
     sq_error_vec[table_idx] = tmp_sq_error / int(simtime)
+    avg_rate_vec[table_idx] = np.average(results["inh_rates"])
     
 sparseness_vec_m = np.ma.array (sparseness_vec, mask=np.isnan(sparseness_vec))
 sq_error_vec_m = np.ma.array (sq_error_vec, mask=np.isnan(sq_error_vec))
+avg_rate_vec_m = np.ma.array (avg_rate_vec, mask=np.isnan(avg_rate_vec))
 
 # it is important to remember that the lookuptable first loops over the
 # sigma_c
 sparseness_mat = np.reshape(sparseness_vec_m, (n_sigma_s, n_sigma_c))
 sq_error_mat = np.reshape(sq_error_vec_m, (n_sigma_s, n_sigma_c))
+avg_rate_mat = np.reshape(avg_rate_vec_m, (n_sigma_s, n_sigma_c))
 
 def plot_heatmap(data, all_sigma_s, all_sigma_c, invert=False):
     fig, ax = plt.subplots(figsize=(8, 8))
@@ -73,15 +81,25 @@ def plot_heatmap(data, all_sigma_s, all_sigma_c, invert=False):
     ax.set_yticklabels(all_sigma_s, minor=False)
     ax.set_xlabel("sigma c")
     ax.set_ylabel("sigma s")
-    cb = fig.colorbar(heatmap)
+    fig.colorbar(heatmap)
     return ax
 
 ax = plot_heatmap(sparseness_mat, all_sigma_s, all_sigma_c, invert=True)
 ax.set_title("Sparseness")
 ax = plot_heatmap(sq_error_mat, all_sigma_s, all_sigma_c)
 ax.set_title("Squared error")
+ax = plot_heatmap(avg_rate_mat, all_sigma_s, all_sigma_c)
+ax.set_title("Average rates")
 
 
+rate_per_diffusion = np.ma.average(avg_rate_mat, axis=1)
+fig, ax = plt.subplots(figsize=(8, 8))
+ax.plot(rate_per_diffusion)
+ax.set_xticks(np.arange(rate_per_diffusion.shape[0]))
+ax.set_xticklabels(all_sigma_s)
+ax.set_xlabel("Diffusion width")
+ax.set_ylabel("Rates [Hz]")
+ax.set_title("Rate per diffusion")
 
 
 #matrix_axis = np.floor(np.sqrt(len(rate_vector)))
