@@ -1,3 +1,4 @@
+print("Python script is running!")
 from brian2 import *
 import numpy as np
 import mytools
@@ -48,7 +49,7 @@ params = { \
     
     
     "prep_time" : 10*second    ,   # give Network time to stabilize
-    "simtime" :  100001*ms     ,   # Simulation time
+    "simtime" :  300.001*ms    ,   # Simulation time
     "dt" : .1*ms               ,   # Simulation time step
     "plot_n_weights" : 200     ,   # Number of weights to be plotted
     "sigma_c" : 200            ,   # connectivity spread
@@ -214,11 +215,16 @@ if not os.path.exists(resultspath):
     os.makedirs(resultspath)
 
 results = {}
+# adding data to be saved
 results["inhWeights"] = network_objs["inhWeightMon"].w # no unit actually!
 results["weight_times"] = network_objs["inhWeightMon"].t/second
 results["inh_rates"] = network_objs["rateMon"].A
 results["inh_rate_times"] = network_objs["rateMon"].t/second
+
+# adding parameters to be saved
 results["prep_time"] = params["prep_time"]
+results["simtime"] = params["simtime"]
+
 if not os.path.exists(resultspath + "/rates_and_weights"):
     os.makedirs(resultspath + "/rates_and_weights")
 pickle.dump(results, open(resultspath + "/rates_and_weights/"
