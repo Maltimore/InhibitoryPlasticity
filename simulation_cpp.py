@@ -218,7 +218,7 @@ results = {}
 # adding data to be saved
 results["inhWeights"] = network_objs["inhWeightMon"].w # no unit actually!
 results["weight_times"] = network_objs["inhWeightMon"].t/second
-results["inh_rates"] = network_objs["rateMon"].A
+results["inh_rates"] = network_objs["rateMon"].A / (params["rate_interval"] / second)
 results["inh_rate_times"] = network_objs["rateMon"].t/second
 
 # adding parameters to be saved

@@ -7,6 +7,9 @@ import matplotlib.pyplot as plt
 
 
 prep_time = 2000 # seconds
+simtime = 100 # seconds (has to be seconds!!)
+rho_0 = 15 # Hz
+
 program_dir = os.getcwd()
 lookuptable = np.array(mytools.lookuptable())
 all_sigma_s = np.sort(np.array(list(set(lookuptable[:,0])))) / 2
@@ -14,7 +17,13 @@ all_sigma_c = np.sort(np.array(list(set(lookuptable[:,1])))) / 2
 n_sigma_s = len(all_sigma_s)
 n_sigma_c = len(all_sigma_c)
 
-sparseness_vec = np.ones(len(lookuptable))
+
+
+# loop over parameter space
+sparseness_vec = np.empty(len(lookuptable))
+sparseness_vec[:] = np.NaN
+sq_error_vec = np.empty(len(lookuptable))
+sq_error_vec[:] = np.NaN
 for table_idx in np.arange(len(lookuptable)):
     sigma_s, sigma_c = lookuptable[table_idx,:]
     sigma_s /= 2
@@ -31,26 +40,56 @@ for table_idx in np.arange(len(lookuptable)):
         print("Failed for table index " + str(table_idx) +
               " with sigma_s = " + str(sigma_s) + 
               ", sigma_c = " + str(sigma_c))
-        sparseness = np.NaN
-        sparseness_vec[table_idx] = sparseness
         continue
     
-    rates = results["inh_rates"][:,-1]
-    sparseness = mytools.compute_sparseness(rates)
-    sparseness_vec[table_idx] = sparseness
+    # loop over timesteps
+    tmp_sparseness = 0
+    tmp_sq_error = 0
+    for timestep in np.arange(int(simtime)):
+        rates = results["inh_rates"][:,timestep]
+        tmp_sparseness += mytools.compute_sparseness(rates)
+        tmp_sq_error += np.average(np.square(rates - rho_0))
+    sparseness_vec[table_idx] = tmp_sparseness / int(simtime)
+    sq_error_vec[table_idx] = tmp_sq_error / int(simtime)
+    
 sparseness_vec_m = np.ma.array (sparseness_vec, mask=np.isnan(sparseness_vec))
+sq_error_vec_m = np.ma.array (sq_error_vec, mask=np.isnan(sq_error_vec))
 
 # it is important to remember that the lookuptable first loops over the
 # sigma_c
 sparseness_mat = np.reshape(sparseness_vec_m, (n_sigma_s, n_sigma_c))
+sq_error_mat = np.reshape(sq_error_vec_m, (n_sigma_s, n_sigma_c))
 
-fig, ax = plt.subplots(figsize=(8, 8))
-heatmap = ax.pcolor(sparseness_mat, cmap=plt.cm.Blues)
-# put the major ticks at the middle of each cell
-ax.set_xticks(np.arange(sparseness_mat.shape[0])+0.5, minor=False)
-ax.set_yticks(np.arange(sparseness_mat.shape[1])+0.5, minor=False)
-ax.set_xticklabels(all_sigma_c, minor=False)
-ax.set_yticklabels(all_sigma_s, minor=False)
-ax.set_xlabel("sigma c")
-ax.set_ylabel("sigma s")
-cb = fig.colorbar(heatmap)
+def plot_heatmap(data, all_sigma_s, all_sigma_c, invert=False):
+    fig, ax = plt.subplots(figsize=(8, 8))
+    if invert:
+        heatmap = ax.pcolor(data, cmap=plt.cm.Blues_r)
+    else:
+        heatmap = ax.pcolor(data, cmap=plt.cm.Blues)
+    # put the major ticks at the middle of each cell
+    ax.set_xticks(np.arange(data.shape[0])+0.5, minor=False)
+    ax.set_yticks(np.arange(data.shape[1])+0.5, minor=False)
+    ax.set_xticklabels(all_sigma_c, minor=False)
+    ax.set_yticklabels(all_sigma_s, minor=False)
+    ax.set_xlabel("sigma c")
+    ax.set_ylabel("sigma s")
+    cb = fig.colorbar(heatmap)
+    return ax
+
+ax = plot_heatmap(sparseness_mat, all_sigma_s, all_sigma_c, invert=True)
+ax.set_title("Sparseness")
+ax = plot_heatmap(sq_error_mat, all_sigma_s, all_sigma_c)
+ax.set_title("Squared error")
+
+
+
+
+#matrix_axis = np.floor(np.sqrt(len(rate_vector)))
+#rate_vector = rate_vector[:matrix_axis**2]
+#rate_mat = np.reshape(rate_vector, (int(np.sqrt(N_inh_neurons)), -1))
+#fig, ax = plt.subplots()
+#ax.pcolor(rate_mat, cmap="Reds")
+#plt.title("Inh firing rate estimated with counting spikes")
+#plt.xticks([]); plt.yticks([]);
+#
+#plt.show()
