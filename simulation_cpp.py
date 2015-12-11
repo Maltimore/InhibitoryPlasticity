@@ -35,7 +35,7 @@ params = { \
     "memc" : 200.0*pfarad      , # Membrane capacitance
     "bgcurrent" : 200*pA       , # External current
     "fixed_in_degree" : .02    , # amount of incoming connections
-    "eta" : .05                , # Learning rate
+    "eta" : .01                , # Learning rate
     "rho_0" : 15               , # Target firing rate
     "scaling_f" : scaling_f,    
     "w_ee" : .3 * scaling_f*nS,  	
@@ -49,7 +49,7 @@ params = { \
     
     
     "prep_time" : 10*second    ,   # give Network time to stabilize
-    "simtime" :  300.001*ms    ,   # Simulation time
+    "simtime" :  300.001*second,   # Simulation time
     "dt" : .1*ms               ,   # Simulation time step
     "plot_n_weights" : 200     ,   # Number of weights to be plotted
     "sigma_c" : 200            ,   # connectivity spread
@@ -220,10 +220,12 @@ results["inhWeights"] = network_objs["inhWeightMon"].w # no unit actually!
 results["weight_times"] = network_objs["inhWeightMon"].t/second
 results["inh_rates"] = network_objs["rateMon"].A / (params["rate_interval"] / second)
 results["inh_rate_times"] = network_objs["rateMon"].t/second
+results["all_inh_weights"] = network_objs["con_ei"].w[:]
 
 # adding parameters to be saved
 results["prep_time"] = params["prep_time"]
 results["simtime"] = params["simtime"]
+results["rho_0"] = params["rho_0"]
 
 if not os.path.exists(resultspath + "/rates_and_weights"):
     os.makedirs(resultspath + "/rates_and_weights")
