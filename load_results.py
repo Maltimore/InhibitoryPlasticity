@@ -6,7 +6,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 
-prep_time = 10 # seconds
+prep_time = 20000 # seconds
 
 
 program_dir = os.getcwd()

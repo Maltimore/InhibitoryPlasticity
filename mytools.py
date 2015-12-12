@@ -68,8 +68,6 @@ def parse_argvs(argv):
         sigma_s = all_args[index][0]
         sigma_c = all_args[index][1]
         
-        print("I'm running a simulation with sigma_s = " + str(sigma_s) + \
-              " and sigma_c = " + str(sigma_c))
     return sigma_s, sigma_c
 
 

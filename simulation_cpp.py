@@ -69,6 +69,9 @@ if __name__ == "__main__":
     else:
         print("User input was invalid.")
 
+print("I'm running a simulation with sigma_s = " + str(sigma_s) + \
+      " and sigma_c = " + str(sigma_c))
+              
 # extract variables from the dictionary to the global namespace
 for key,val in params.items():
     exec(key + '=val')
