@@ -68,14 +68,14 @@ if __name__ == "__main__":
         params["sigma_c"] = user_params[1] / neuron_scaling
     else:
         print("User input was invalid.")
-
-print("I'm running a simulation with sigma_s = " + str(sigma_s) + \
-      " and sigma_c = " + str(sigma_c))
               
 # extract variables from the dictionary to the global namespace
 for key,val in params.items():
     exec(key + '=val')
-    
+
+print("I'm running a simulation with sigma_s = " + str(sigma_s) + \
+      " and sigma_c = " + str(sigma_c))
+
 np.random.seed(1337)
 use_maltes_algorithm = False
 use_owens_algorithm = not use_maltes_algorithm
