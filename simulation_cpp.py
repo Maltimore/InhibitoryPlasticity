@@ -60,9 +60,7 @@ params = { \
     "do_profiling" : False     , 
     "do_run" : True            , 
     "program_dir" : os.getcwd()}
-# extract variables from the dictionary to the global namespace
-for key,val in params.items():
-    exec(key + '=val')
+
 
 if __name__ == "__main__":
     user_params = mytools.parse_argvs(sys.argv, neuron_scaling)
@@ -76,6 +74,10 @@ if __name__ == "__main__":
         params["sigma_s"] = user_params[0]
         params["sigma_c"] = user_params[1]
 
+# extract variables from the dictionary to the global namespace
+for key,val in params.items():
+    exec(key + '=val')
+    
 # adding parameters to be saved
 resultspath = program_dir + "/results/rho0_" + str(rho_0) + "Hz/"
 results = {}
