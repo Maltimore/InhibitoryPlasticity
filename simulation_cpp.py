@@ -53,6 +53,7 @@ params = { \
     "dt" : .1*ms               ,   # Simulation time step
     "sigma_c" : 200            ,   # connectivity spread
     "sigma_s" : 200            ,   # sensor width
+    "plot_n_weights": 200      ,    
     "do_plotting" : False      ,  
     "do_global_update" : False , 
     "do_local_update" : False  , 
@@ -76,17 +77,17 @@ if __name__ == "__main__":
         params["sigma_c"] = user_params[1]
 
 # adding parameters to be saved
-resultspath = program_dir + "/results/rho0_" + rho_0 + "Hz/"
+resultspath = program_dir + "/results/rho0_" + str(rho_0) + "Hz/"
 results = {}
 results["prep_time"] = params["prep_time"]
 results["simtime"] = params["simtime"]
 results["rho_0"] = params["rho_0"]
-results["w_min"] = params["w_min"]
-results["w_max"] = params["w_max"]
+results["wmin"] = params["wmin"]
+results["wmax"] = params["wmax"]
 results["eta"] = params["eta"]
 results["lookuptable"] = mytools.lookuptable(neuron_scaling)
+results["neuron_scaling"] = neuron_scaling
          
-
 if user_params == "parameter_file_requested":
     print("Saving parameter file")
     if not os.path.exists(resultspath + "rates_and_weights"):

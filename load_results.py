@@ -1,4 +1,4 @@
-#from brian2 import *
+from brian2 import second
 import pickle
 import mytools
 import os
@@ -16,17 +16,18 @@ if not os.path.exists(plots_dir):
 
 # Load the parameters file
 try:
-    params_file = pickle.load(open(program_dir + "/results/rates_and_weights/" 
-                           + resultfile, "rb"))
+    params_file = pickle.load(open(program_dir + \
+                    "/results/rho0_" + str(rho_0) + "Hz/rates_and_weights/" + \
+                    "parameter_file", "rb"))
 except:
     print("Failed to load the example dataset to get the parameters from!")
         
         
-lookuptable = params_file["lookuptable"]
-simtime = params_file["simtime"]
+lookuptable = np.array(params_file["lookuptable"]) *2
+simtime = params_file["simtime"] / second
 rho_0 = params_file["rho_0"]
-w_min = params_file["w_min"]
-w_max = params_file["w_max"]
+w_min = params_file["wmin"]
+w_max = params_file["wmax"]
 
 all_sigma_s = np.sort(np.array(list(set(lookuptable[:,0]))))
 all_sigma_c = np.sort(np.array(list(set(lookuptable[:,1]))))
@@ -59,14 +60,17 @@ for table_idx in np.arange(len(lookuptable)):
                  "prep_" + str(int(prep_time)) + "_seconds"
     # open file
     try:
-        results = pickle.load(open(program_dir + "/results/rates_and_weights/" 
-                               + resultfile, "rb"))
+        results = pickle.load(open(program_dir + 
+                    "/results/rho0_" + str(rho_0) + "Hz/rates_and_weights/" + \
+                    resultfile, "rb"))
         simtime = results["simtime"]
         rho_0 = results["rho_0"]
     except:
         print("Failed for table index " + str(table_idx) +
               " with sigma_s = " + str(sigma_s) + 
               ", sigma_c = " + str(sigma_c))
+        print("To restart the simulation, remember that the qsub index is " +
+              str(table_idx + 1))
         continue
     
     # loop over timesteps
@@ -145,7 +149,8 @@ ax.set_xticklabels(all_sigma_s)
 ax.set_xlabel("Diffusion width")
 ax.set_ylabel("Rates [Hz]")
 ax.set_title("Rate per diffusion")
-
+ax.set_ylim([np.amin(rate_per_diffusion)-1, np.amax(rate_per_diffusion)+1])
+plt.savefig(plots_dir + "Rate per diffusion" + ".png", dpi=use_dpi)
 
 # Weight histograms
 #fig, axes = plt.subplots(n_sigma_c, n_sigma_s, figsize=(15, 15),
@@ -162,7 +167,7 @@ ax.set_title("Rate per diffusion")
 #        if sigma_s_idx == 0:
 #            ax.set_xlabel(all_sigma_c[sigma_c_idx], fontsize=18)
 #plt.tight_layout()
-#plt.savefig(plots_dir + "Weight_histograms.png", dpi=use_dpi)
+#plt.savefig(plots_dir + "Weight histograms.png", dpi=use_dpi)
 
 
 
