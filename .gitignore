@@ -4,6 +4,7 @@ cpp_standalone
 results
 text_output
 errors
+plots
 *.*~
 *.pyc
 *.save

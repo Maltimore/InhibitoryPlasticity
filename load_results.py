@@ -7,19 +7,34 @@ import matplotlib.pyplot as plt
 
 
 prep_time = 20000 # seconds
-
+rho_0 = 15
 
 program_dir = os.getcwd()
-lookuptable = np.array(mytools.lookuptable())
-all_sigma_s = np.sort(np.array(list(set(lookuptable[:,0])))) / 2
-all_sigma_c = np.sort(np.array(list(set(lookuptable[:,1])))) / 2
+plots_dir = program_dir + "/plots/rho0_" + str(rho_0) + "Hz/"
+if not os.path.exists(plots_dir):
+    os.makedirs(plots_dir)
+
+# Load the parameters file
+try:
+    params_file = pickle.load(open(program_dir + "/results/rates_and_weights/" 
+                           + resultfile, "rb"))
+except:
+    print("Failed to load the example dataset to get the parameters from!")
+        
+        
+lookuptable = params_file["lookuptable"]
+simtime = params_file["simtime"]
+rho_0 = params_file["rho_0"]
+w_min = params_file["w_min"]
+w_max = params_file["w_max"]
+
+all_sigma_s = np.sort(np.array(list(set(lookuptable[:,0]))))
+all_sigma_c = np.sort(np.array(list(set(lookuptable[:,1]))))
 n_sigma_s = len(all_sigma_s)
 n_sigma_c = len(all_sigma_c)
-n_weight_bins = 100
-w_min = 0
-w_max = 300
+n_weight_bins = 30
 bin_width = (w_max - w_min) / n_weight_bins
-
+use_dpi = 400
 
 # loop over parameter space
 sparseness_vec = np.empty(len(lookuptable))
@@ -28,6 +43,10 @@ sq_error_vec = np.empty(len(lookuptable))
 sq_error_vec[:] = np.NaN
 avg_rate_vec = np.empty(len(lookuptable))
 avg_rate_vec[:] = np.NaN
+n_min_weights = np.empty(len(lookuptable))
+n_min_weights[:] = np.NaN
+n_max_weights = np.empty(len(lookuptable))
+n_max_weights[:] = np.NaN
 weight_hist = np.empty((n_sigma_s, n_sigma_c, n_weight_bins))
 weight_hist[:] = np.NaN
 for table_idx in np.arange(len(lookuptable)):
@@ -60,23 +79,30 @@ for table_idx in np.arange(len(lookuptable)):
     sparseness_vec[table_idx] = tmp_sparseness / int(simtime)
     sq_error_vec[table_idx] = tmp_sq_error / int(simtime)
     avg_rate_vec[table_idx] = np.average(results["inh_rates"])
-
+    n_min_weights[table_idx] = len(np.where(results["inhWeights"] < w_min + .01)[0])
+    n_max_weights[table_idx] = len(np.where(results["inhWeights"] > w_max - .01)[0])
 
     hist, bin_edges = np.histogram(results["inhWeights"], n_weight_bins,
                                    range=(w_min, w_max))
     weight_hist[all_sigma_s == sigma_s, all_sigma_c == sigma_c, :] = hist
     
-sparseness_vec_m = np.ma.array (sparseness_vec, mask=np.isnan(sparseness_vec))
-sq_error_vec_m = np.ma.array (sq_error_vec, mask=np.isnan(sq_error_vec))
-avg_rate_vec_m = np.ma.array (avg_rate_vec, mask=np.isnan(avg_rate_vec))
+
+sparseness_vec_m = np.ma.array(sparseness_vec, mask=np.isnan(sparseness_vec))
+sq_error_vec_m = np.ma.array(sq_error_vec, mask=np.isnan(sq_error_vec))
+avg_rate_vec_m = np.ma.array(avg_rate_vec, mask=np.isnan(avg_rate_vec))
+n_min_weights = np.ma.array(n_min_weights, mask=np.isnan(n_min_weights))
+n_max_weights = np.ma.array(n_max_weights, mask=np.isnan(n_max_weights))
+
 
 # it is important to remember that the lookuptable first loops over the
 # sigma_c
 sparseness_mat = np.reshape(sparseness_vec_m, (n_sigma_s, n_sigma_c))
 sq_error_mat = np.reshape(sq_error_vec_m, (n_sigma_s, n_sigma_c))
 avg_rate_mat = np.reshape(avg_rate_vec_m, (n_sigma_s, n_sigma_c))
+n_min_weights = np.reshape(n_min_weights, (n_sigma_s, n_sigma_c))
+n_max_weights = np.reshape(n_max_weights, (n_sigma_s, n_sigma_c))
 
-def plot_heatmap(data, all_sigma_s, all_sigma_c, invert=False):
+def plot_heatmap(data, all_sigma_s, all_sigma_c, invert=False, title=""):
     fig, ax = plt.subplots(figsize=(8, 8))
     if invert:
         heatmap = ax.pcolor(data, cmap=plt.cm.Blues_r)
@@ -89,18 +115,25 @@ def plot_heatmap(data, all_sigma_s, all_sigma_c, invert=False):
     ax.set_yticklabels(all_sigma_s, minor=False)
     ax.set_xlabel("sigma c")
     ax.set_ylabel("sigma s")
+    if title != "":
+        ax.set_title(title)
     fig.colorbar(heatmap)
+    plt.savefig(plots_dir + title + ".png", dpi=use_dpi)
     return ax
 
 # Sparseness plot
-ax = plot_heatmap(sparseness_mat, all_sigma_s, all_sigma_c, invert=True)
-ax.set_title("Sparseness")
+ax = plot_heatmap(sparseness_mat, all_sigma_s, all_sigma_c, invert=True,
+                  title="Sparseness")
 # Squared error plot
-ax = plot_heatmap(sq_error_mat, all_sigma_s, all_sigma_c)
-ax.set_title("Squared error")
+ax = plot_heatmap(sq_error_mat, all_sigma_s, all_sigma_c, title="Squared error")
 # Average rates plot
-ax = plot_heatmap(avg_rate_mat, all_sigma_s, all_sigma_c)
-ax.set_title("Average rates")
+ax = plot_heatmap(avg_rate_mat, all_sigma_s, all_sigma_c, title="Average rates")
+# Min weights plot
+ax = plot_heatmap(n_min_weights, all_sigma_s, all_sigma_c,
+                  title="Number of minimum weights")
+# Max weights plot
+ax = plot_heatmap(n_max_weights, all_sigma_s, all_sigma_c,
+                  title="Number of max weights")
 
 
 # Firing rate per diffusion
@@ -114,24 +147,22 @@ ax.set_ylabel("Rates [Hz]")
 ax.set_title("Rate per diffusion")
 
 
-#total_idx = (n_sigma_c * n_sigma_s)-1
-fig, axes = plt.subplots(n_sigma_c, n_sigma_s, figsize=(15,15))
-for sigma_c_idx, axslice in enumerate(axes.T):
-    for sigma_s_idx, ax in enumerate(axslice[::-1]):
-        hist = weight_hist[sigma_s_idx, sigma_c_idx]
-        ax.bar(bin_edges[:-1], hist, width = bin_width - .01)
-        ax.set_xticks([])
-        ax.set_yticks([])
-
-#matrix_axis = np.floor(np.sqrt(len(rate_vector)))
-#rate_vector = rate_vector[:matrix_axis**2]
-#rate_mat = np.reshape(rate_vector, (int(np.sqrt(N_inh_neurons)), -1))
-#fig, ax = plt.subplots()
-#ax.pcolor(rate_mat, cmap="Reds")
-#plt.title("Inh firing rate estimated with counting spikes")
-#plt.xticks([]); plt.yticks([]);
-#
-#plt.show()
+# Weight histograms
+#fig, axes = plt.subplots(n_sigma_c, n_sigma_s, figsize=(15, 15),
+#                         sharex=True, sharey=True)
+#for sigma_c_idx, row in enumerate(axes.T):
+#    for sigma_s_idx, ax in enumerate(row[::-1]):
+#        hist = weight_hist[sigma_s_idx, sigma_c_idx]
+#        ax.bar(bin_edges[:-1], hist, width = bin_width - .01)
+#        ax.set_xticks([])
+#        ax.set_yticks([])
+#        ax.set_ylim([0, 10000])
+#        if sigma_c_idx == 0:
+#            ax.set_ylabel(all_sigma_s[sigma_s_idx], fontsize=18)
+#        if sigma_s_idx == 0:
+#            ax.set_xlabel(all_sigma_c[sigma_c_idx], fontsize=18)
+#plt.tight_layout()
+#plt.savefig(plots_dir + "Weight_histograms.png", dpi=use_dpi)
 
 
 

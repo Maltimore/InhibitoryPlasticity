@@ -32,13 +32,16 @@ def _exp_function(x_vec, mu, scale):
 
 
 ### TOOL FUNCTIONS ############################################################
-def lookuptable():
+def lookuptable(neuron_scaling):
     # these values have to be divided by two later if we have just 5000 
     # neurons
-    sigma_s = [0.,   100., 300., 500.,  900., 1300., 1700., 2100., np.infty]
-    sigma_c = [200., 400., 600., 900., 1300., 2100., 2900., 3700., np.infty]    
-
-
+    sigma_s = np.array([0.,   100., 300., 500.,   900., 1300., 2100., np.infty])
+    sigma_c = np.array([200., 400., 900., 1300., 2100., 2900., 3700., np.infty])
+    sigma_s /= neuron_scaling
+    sigma_c /= neuron_scaling
+    sigma_s = list(sigma_s)
+    sigma_c = list(sigma_c)    
+    
     n_sensors = len(sigma_s)
     n_connectivities = len(sigma_c)
     
@@ -46,8 +49,8 @@ def lookuptable():
     sigma_c = sigma_c * n_sensors
     return list(zip(sigma_s, sigma_c))
 
-def parse_argvs(argv):
-    all_args = lookuptable()
+def parse_argvs(argv, neuron_scaling):
+    all_args = lookuptable(neuron_scaling)
     n_total = len(all_args)
     
     if len(argv) < 2:
@@ -58,11 +61,13 @@ def parse_argvs(argv):
         print("Call for simulation received too many arguments.")
         print("Exiting..")
         return "invalid"
-    elif int(argv[1]) > n_total:
+    elif int(argv[1]) > n_total + 1:
         # notice that qsub indexes from 1 therefor it's not ">="
         print("Index " + str(argv[1]) + " doesn't match any parameter set.")
         print("Exiting..")
         return "invalid"
+    elif int(argv[1]) == n_total + 1:
+        return "parameter_file_requested"
     else:
         index = int(argv[1]) - 1 # qsub cannot give task ID 0.
         sigma_s = all_args[index][0]

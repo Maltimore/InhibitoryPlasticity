@@ -1,7 +1,7 @@
 #!/bin/sh
 #$ -V -cwd
 #$ -q cognition-all.q
-#$ -t 1-81
+#$ -t 1-64
 #$ -l h_vmem=5G
 #$ -N mytest
 #$ -e ./errors/$JOB_NAME.task_id_$TASK_ID

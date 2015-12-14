@@ -51,27 +51,50 @@ params = { \
     "prep_time" : 20000*second    ,   # give Network time to stabilize
     "simtime" :  300.001*second,   # Simulation time
     "dt" : .1*ms               ,   # Simulation time step
-    "plot_n_weights" : 200     ,   # Number of weights to be plotted
     "sigma_c" : 200            ,   # connectivity spread
-    "sigma_s" : 200            ,   # sensor width adapted to spacing of inh cells
+    "sigma_s" : 200            ,   # sensor width
     "do_plotting" : False      ,  
     "do_global_update" : False , 
     "do_local_update" : False  , 
     "do_profiling" : False     , 
     "do_run" : True            , 
     "program_dir" : os.getcwd()}
-
-if __name__ == "__main__":
-    user_params = mytools.parse_argvs(sys.argv)
-    if user_params != "invalid":
-        params["sigma_s"] = user_params[0] / neuron_scaling
-        params["sigma_c"] = user_params[1] / neuron_scaling
-    else:
-        print("User input was invalid.")
-              
 # extract variables from the dictionary to the global namespace
 for key,val in params.items():
     exec(key + '=val')
+
+if __name__ == "__main__":
+    user_params = mytools.parse_argvs(sys.argv, neuron_scaling)
+    if user_params == "invalid":
+        print("User input was invalid. Exiting..")
+        sys.stdout.flush()
+        sys.exit(0)
+    elif user_params == "parameter_file_requested":
+        print("Parameter file requested.")         
+    else:
+        params["sigma_s"] = user_params[0]
+        params["sigma_c"] = user_params[1]
+
+# adding parameters to be saved
+resultspath = program_dir + "/results/rho0_" + rho_0 + "Hz/"
+results = {}
+results["prep_time"] = params["prep_time"]
+results["simtime"] = params["simtime"]
+results["rho_0"] = params["rho_0"]
+results["w_min"] = params["w_min"]
+results["w_max"] = params["w_max"]
+results["eta"] = params["eta"]
+results["lookuptable"] = mytools.lookuptable(neuron_scaling)
+         
+
+if user_params == "parameter_file_requested":
+    print("Saving parameter file")
+    if not os.path.exists(resultspath + "rates_and_weights"):
+        os.makedirs(resultspath + "rates_and_weights")
+    pickle.dump(results, open(resultspath + "rates_and_weights/"
+                              + "parameter_file", "wb"))
+    sys.stdout.flush()
+    sys.exit(0)
 
 print("I'm running a simulation with sigma_s = " + str(sigma_s) + \
       " and sigma_c = " + str(sigma_c))
@@ -210,14 +233,10 @@ print("Done simulating.")
 ### saved files, one knows which units to assign to them.
 ### time: second
 ### weights: nS
-resultspath = program_dir + "/results"
 resultfile = "sigma_s_" + str(params["sigma_s"]) + "_" + \
              "sigma_c_" + str(params["sigma_c"]) + "_" + \
              "prep_" + str(int(params["prep_time"]/second)) + "_seconds"
-if not os.path.exists(resultspath):
-    os.makedirs(resultspath)
 
-results = {}
 # adding data to be saved
 results["inhWeights"] = network_objs["inhWeightMon"].w # no unit actually!
 results["weight_times"] = network_objs["inhWeightMon"].t/second
@@ -225,30 +244,15 @@ results["inh_rates"] = network_objs["rateMon"].A / (params["rate_interval"] / se
 results["inh_rate_times"] = network_objs["rateMon"].t/second
 results["all_inh_weights"] = network_objs["con_ei"].w[:]
 
-# adding parameters to be saved
-results["prep_time"] = params["prep_time"]
-results["simtime"] = params["simtime"]
-results["rho_0"] = params["rho_0"]
-
-if not os.path.exists(resultspath + "/rates_and_weights"):
-    os.makedirs(resultspath + "/rates_and_weights")
-pickle.dump(results, open(resultspath + "/rates_and_weights/"
+if not os.path.exists(resultspath + "rates_and_weights"):
+    os.makedirs(resultspath + "rates_and_weights")
+pickle.dump(results, open(resultspath + "rates_and_weights/"
                           + resultfile, "wb"))
 results["inh_spike_times"] = network_objs["inhSpikeMon"].t/second
 results["inh_spike_neuron_idxes"] = network_objs["inhSpikeMon"].i[:]
 results["exc_spike_times"] = network_objs["excSpikeMon"].t/second
 results["exc_spike_neuron_idxes"] = network_objs["excSpikeMon"].i[:]
-if not os.path.exists(resultspath + "/all_data"):
-    os.makedirs(resultspath + "/all_data")
-pickle.dump(results, open(resultspath + "/all_data/"
+if not os.path.exists(resultspath + "all_data"):
+    os.makedirs(resultspath + "all_data")
+pickle.dump(results, open(resultspath + "all_data/"
                           + resultfile, "wb"))
-                          
-### PLOTTING ##################################################################
-if do_plotting:
-    import plot_script
-    imp.reload(plot_script) # this is just for development purposes
-    rate_holder = network_objs["rateMon"].A[:, 1:] / rate_interval
-    w_holder = network_objs["inhWeightMon"].w
-    plot_script.create_plots(params, w_holder, rate_holder)
-else:
-    print("Plotting was not desired.")
