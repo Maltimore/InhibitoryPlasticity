@@ -23,7 +23,7 @@ except:
     print("Failed to load the example dataset to get the parameters from!")
         
         
-lookuptable = np.array(params_file["lookuptable"]) *2
+lookuptable = np.array(params_file["lookuptable"])
 simtime = params_file["simtime"] / second
 rho_0 = params_file["rho_0"]
 w_min = params_file["wmin"]

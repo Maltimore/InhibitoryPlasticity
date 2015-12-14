@@ -19,7 +19,7 @@ x_NI = int(NE/NI)
 
 
 params = { \
-    "Ntot": Ntot,
+    "Ntot": Ntot               , # Total number of neurons
     "NE" :  NE                 , # Number of excitatory cells
     "NI" :  NI                 , # Number of inhibitory cells
     "x_NI" :  x_NI             , # spacing of inh cells
@@ -37,29 +37,24 @@ params = { \
     "fixed_in_degree" : .02    , # amount of incoming connections
     "eta" : .01                , # Learning rate
     "rho_0" : 15               , # Target firing rate
-    "scaling_f" : scaling_f,    
-    "w_ee" : .3 * scaling_f*nS,  	
-    "w_ie" : .3  * scaling_f*nS,	
-    "w_ii" : 3  * scaling_f*nS,  	
-    "w_ei" : 3 * scaling_f,   # starting weight for the inh to exc connections
-    "wmin" : float(0),
-    "wmax" : float(300),
-    "save_connectivity_to_file": True,
-    "load_connectivity_from_file": True,
-    
-    
-    "prep_time" : 20000*second    ,   # give Network time to stabilize
-    "simtime" :  300.001*second,   # Simulation time
-    "dt" : .1*ms               ,   # Simulation time step
-    "sigma_c" : 200            ,   # connectivity spread
-    "sigma_s" : 200            ,   # sensor width
-    "plot_n_weights": 200      ,    
-    "do_plotting" : False      ,  
-    "do_global_update" : False , 
-    "do_local_update" : False  , 
-    "do_profiling" : False     , 
-    "do_run" : True            , 
-    "program_dir" : os.getcwd()}
+    "scaling_f" : scaling_f    , # scaling factor if not using 10000 neurons   
+    "w_ee" : .3 * scaling_f*nS , # exc-exc weight
+    "w_ie" : .3  * scaling_f*nS, # exc-inh weight
+    "w_ii" : 3  * scaling_f*nS , # inh-inh weight
+    "w_ei" : 3 * scaling_f     , # starting weight for the inh to exc connections
+    "wmin" : float(0)          , # minimum permissible weight
+    "wmax" : float(300)        , # maximum permissible weight
+    "prep_time" : 20000*second , # give Network time to stabilize
+    "simtime" :  300.001*second, # Simulation time
+    "dt" : .1*ms               , # Simulation time step
+    "sigma_c" : 200            , # connectivity spread
+    "sigma_s" : 200            , # sensor width
+    "plot_n_weights": 200      , # number of weights that will be recorded
+    "do_profiling" : False     , # whether Brian should profile comp. times
+    "do_run" : True            , # whether the simulation should actually run
+    "program_dir" : os.getcwd(), # working directory
+    "save_connectivity_to_file": True,  # whether to load connectivity matrix
+    "load_connectivity_from_file": True} #whether to save connectivity matrix
 
 
 if __name__ == "__main__":
