@@ -15,7 +15,10 @@ all_sigma_s = np.sort(np.array(list(set(lookuptable[:,0])))) / 2
 all_sigma_c = np.sort(np.array(list(set(lookuptable[:,1])))) / 2
 n_sigma_s = len(all_sigma_s)
 n_sigma_c = len(all_sigma_c)
-
+n_weight_bins = 100
+w_min = 0
+w_max = 300
+bin_width = (w_max - w_min) / n_weight_bins
 
 
 # loop over parameter space
@@ -25,7 +28,8 @@ sq_error_vec = np.empty(len(lookuptable))
 sq_error_vec[:] = np.NaN
 avg_rate_vec = np.empty(len(lookuptable))
 avg_rate_vec[:] = np.NaN
-
+weight_hist = np.empty((n_sigma_s, n_sigma_c, n_weight_bins))
+weight_hist[:] = np.NaN
 for table_idx in np.arange(len(lookuptable)):
     sigma_s, sigma_c = lookuptable[table_idx,:]
     sigma_s /= 2
@@ -58,6 +62,9 @@ for table_idx in np.arange(len(lookuptable)):
     avg_rate_vec[table_idx] = np.average(results["inh_rates"])
 
 
+    hist, bin_edges = np.histogram(results["inhWeights"], n_weight_bins,
+                                   range=(w_min, w_max))
+    weight_hist[all_sigma_s == sigma_s, all_sigma_c == sigma_c, :] = hist
     
 sparseness_vec_m = np.ma.array (sparseness_vec, mask=np.isnan(sparseness_vec))
 sq_error_vec_m = np.ma.array (sq_error_vec, mask=np.isnan(sq_error_vec))
@@ -107,6 +114,15 @@ ax.set_ylabel("Rates [Hz]")
 ax.set_title("Rate per diffusion")
 
 
+#total_idx = (n_sigma_c * n_sigma_s)-1
+fig, axes = plt.subplots(n_sigma_c, n_sigma_s, figsize=(15,15))
+for sigma_c_idx, axslice in enumerate(axes.T):
+    for sigma_s_idx, ax in enumerate(axslice[::-1]):
+        hist = weight_hist[sigma_s_idx, sigma_c_idx]
+        ax.bar(bin_edges[:-1], hist, width = bin_width - .01)
+        ax.set_xticks([])
+        ax.set_yticks([])
+
 #matrix_axis = np.floor(np.sqrt(len(rate_vector)))
 #rate_vector = rate_vector[:matrix_axis**2]
 #rate_mat = np.reshape(rate_vector, (int(np.sqrt(N_inh_neurons)), -1))
@@ -116,3 +132,6 @@ ax.set_title("Rate per diffusion")
 #plt.xticks([]); plt.yticks([]);
 #
 #plt.show()
+
+
+
