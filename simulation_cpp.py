@@ -6,8 +6,23 @@ import imp
 import os
 import sys
 import pickle
+import signal
 imp.reload(mytools)
 start_scope()
+
+print("My pid is: " + str(os.getpid())) 
+def signal_term_handler(signal, frame):
+    print("Process with index " + str(sys.argv[1]) + " caught SIGTERM!")
+    errorpath = os.getcwd() + "/errors"
+    if not os.path.exists(errorpath):
+        os.makedirs(errorpath)
+    with open(errorpath + "/Error_in_qsub_index_" + str(sys.argv[1]) + \
+              ".txt", "w") as text_file:
+        print("This process caught SIGTERM.", file=text_file)
+    sys.exit(0)
+signal.signal(signal.SIGTERM, signal_term_handler)
+
+
 
 ### PARAMETERS ################################################################
 neuron_scaling = 2
