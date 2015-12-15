@@ -1,8 +1,8 @@
-#!/bin/sh
+#!/bin/bash
 #$ -V -cwd
 #$ -q cognition-all.q
 #$ -l h_vmem=5G
-#$ -N maltes_sim
-#$ -e ./errors/$JOB_NAME.task_id_16
-#$ -o ./text_output/$JOB_NAME.task_id_16
-python simulation_cpp.py 16 
+#$ -e ./errors/$JOB_NAME
+#$ -o ./text_output/$JOB_NAME
+echo "Running single simulation with name $JOB_NAME and lookupindex ${lookupindex}"
+python simulation_cpp.py ${lookupindex}
