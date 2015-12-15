@@ -44,8 +44,8 @@ params = { \
     "w_ei" : 3 * scaling_f     , # starting weight for the inh to exc connections
     "wmin" : float(0)          , # minimum permissible weight
     "wmax" : float(300)        , # maximum permissible weight
-    "prep_time" : 20000*second , # give Network time to stabilize
-    "simtime" :  300.001*second, # Simulation time
+    "prep_time" : 10*second , # give Network time to stabilize
+    "simtime" :  10.001*second, # Simulation time
     "dt" : .1*ms               , # Simulation time step
     "sigma_c" : 200            , # connectivity spread
     "sigma_s" : 200            , # sensor width
