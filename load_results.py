@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 
 
 prep_time = 20000 # seconds
-rho_0 = 15
+rho_0 = 6
 
 program_dir = os.getcwd()
 plots_dir = program_dir + "/plots/rho0_" + str(rho_0) + "Hz/"
