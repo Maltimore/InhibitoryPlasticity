@@ -52,8 +52,6 @@ weight_hist = np.empty((n_sigma_s, n_sigma_c, n_weight_bins))
 weight_hist[:] = np.NaN
 for table_idx in np.arange(len(lookuptable)):
     sigma_s, sigma_c = lookuptable[table_idx,:]
-    sigma_s /= 2
-    sigma_c /= 2
     
     resultfile = "sigma_s_" + str(sigma_s) + "_" + \
                  "sigma_c_" + str(sigma_c) + "_" + \
@@ -90,7 +88,7 @@ for table_idx in np.arange(len(lookuptable)):
                                    range=(w_min, w_max))
     weight_hist[all_sigma_s == sigma_s, all_sigma_c == sigma_c, :] = hist
     
-
+# masking arrays for NaN values
 sparseness_vec_m = np.ma.array(sparseness_vec, mask=np.isnan(sparseness_vec))
 sq_error_vec_m = np.ma.array(sq_error_vec, mask=np.isnan(sq_error_vec))
 avg_rate_vec_m = np.ma.array(avg_rate_vec, mask=np.isnan(avg_rate_vec))
@@ -153,21 +151,21 @@ ax.set_ylim([np.amin(rate_per_diffusion)-1, np.amax(rate_per_diffusion)+1])
 plt.savefig(plots_dir + "Rate per diffusion" + ".png", dpi=use_dpi)
 
 # Weight histograms
-#fig, axes = plt.subplots(n_sigma_c, n_sigma_s, figsize=(15, 15),
-#                         sharex=True, sharey=True)
-#for sigma_c_idx, row in enumerate(axes.T):
-#    for sigma_s_idx, ax in enumerate(row[::-1]):
-#        hist = weight_hist[sigma_s_idx, sigma_c_idx]
-#        ax.bar(bin_edges[:-1], hist, width = bin_width - .01)
-#        ax.set_xticks([])
-#        ax.set_yticks([])
-#        ax.set_ylim([0, 10000])
-#        if sigma_c_idx == 0:
-#            ax.set_ylabel(all_sigma_s[sigma_s_idx], fontsize=18)
-#        if sigma_s_idx == 0:
-#            ax.set_xlabel(all_sigma_c[sigma_c_idx], fontsize=18)
-#plt.tight_layout()
-#plt.savefig(plots_dir + "Weight histograms.png", dpi=use_dpi)
+fig, axes = plt.subplots(n_sigma_c, n_sigma_s, figsize=(15, 15),
+                         sharex=True, sharey=True)
+for sigma_c_idx, row in enumerate(axes.T):
+    for sigma_s_idx, ax in enumerate(row[::-1]):
+        hist = weight_hist[sigma_s_idx, sigma_c_idx]
+        ax.bar(bin_edges[:-1], hist, width = bin_width - .01)
+        ax.set_xticks([])
+        ax.set_yticks([])
+        ax.set_ylim([0, 10000])
+        if sigma_c_idx == 0:
+            ax.set_ylabel(all_sigma_s[sigma_s_idx], fontsize=18)
+        if sigma_s_idx == 0:
+            ax.set_xlabel(all_sigma_c[sigma_c_idx], fontsize=18)
+plt.tight_layout()
+plt.savefig(plots_dir + "Weight histograms.png", dpi=use_dpi)
 
 
 
