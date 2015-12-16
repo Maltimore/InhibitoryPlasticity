@@ -22,7 +22,6 @@ def signal_term_handler(signal, frame):
     sys.exit(0)
 signal.signal(signal.SIGTERM, signal_term_handler)
 
-
 ### PARAMETERS ################################################################
 neuron_scaling = 2
 Ntot = int(10000 / neuron_scaling)

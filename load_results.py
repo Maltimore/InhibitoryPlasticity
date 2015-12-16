@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 
 
 prep_time = 20000 # seconds
-rho_0 = 6
+rho_0 = 7
 
 program_dir = os.getcwd()
 plots_dir = program_dir + "/plots/rho0_" + str(rho_0) + "Hz/"
@@ -141,7 +141,7 @@ ax = plot_heatmap(n_max_weights, all_sigma_s, all_sigma_c,
 # Firing rate per diffusion
 rate_per_diffusion = np.ma.average(avg_rate_mat, axis=1)
 fig, ax = plt.subplots(figsize=(8, 8))
-ax.plot(rate_per_diffusion)
+ax.plot(rate_per_diffusion, 'bo', rate_per_diffusion, 'k')
 ax.set_xticks(np.arange(rate_per_diffusion.shape[0]))
 ax.set_xticklabels(all_sigma_s)
 ax.set_xlabel("Diffusion width")

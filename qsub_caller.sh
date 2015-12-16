@@ -19,4 +19,4 @@ if [ ! -d "./errors" ]; then
 	mkdir ./errors
 fi
 
-qsub python_caller.sh -N "$1"
+qsub -N "$1" python_caller.sh 
