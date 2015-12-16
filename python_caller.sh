@@ -3,7 +3,7 @@
 #$ -q cognition-all.q
 #$ -t 1-65
 #$ -l h_vmem=5G
-#$ -N mytest
+#$ -N sim_rho0_7
 #$ -e ./errors/$JOB_NAME.task_id_$TASK_ID
 #$ -o ./text_output/$JOB_NAME.task_id_$TASK_ID
 echo "I'm running task $SGE_TASK_ID on node $HOSTNAME! The job is $JOB_ID."

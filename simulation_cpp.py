@@ -21,7 +21,6 @@ def signal_term_handler(signal, frame):
         print("This process caught kill signal.", file=text_file)
     sys.exit(0)
 signal.signal(signal.SIGTERM, signal_term_handler)
-signal.signal(signal.SIGKILL, signal_term_handler)
 
 
 ### PARAMETERS ################################################################
@@ -51,7 +50,7 @@ params = { \
     "bgcurrent" : 200*pA       , # External current
     "fixed_in_degree" : .02    , # amount of incoming connections
     "eta" : .01                , # Learning rate
-    "rho_0" : 15               , # Target firing rate
+    "rho_0" : 7                , # Target firing rate
     "scaling_f" : scaling_f    , # scaling factor if not using 10000 neurons   
     "w_ee" : .3 * scaling_f*nS , # exc-exc weight
     "w_ie" : .3  * scaling_f*nS, # exc-inh weight
@@ -59,8 +58,8 @@ params = { \
     "w_ei" : 3 * scaling_f     , # starting weight for the inh to exc connections
     "wmin" : float(0)          , # minimum permissible weight
     "wmax" : float(300)        , # maximum permissible weight
-    "prep_time" : 1000*second , # give Network time to stabilize
-    "simtime" :  10.001*second, # Simulation time
+    "prep_time" : 20000*second , # give Network time to stabilize
+    "simtime" :  300.001*second, # Simulation time
     "dt" : .1*ms               , # Simulation time step
     "sigma_c" : 200            , # connectivity spread
     "sigma_s" : 200            , # sensor width
