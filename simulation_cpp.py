@@ -10,7 +10,7 @@ import signal
 imp.reload(mytools)
 start_scope()
 
-print("My pid is: " + str(os.getpid())) 
+print("My pid is: " + str(os.getpid()), flush=True) 
 def signal_term_handler(signal, frame):
     print("Process with index " + str(sys.argv[1]) + " caught kill signal!")
     errorpath = os.getcwd() + "/errors"
@@ -25,10 +25,12 @@ signal.signal(signal.SIGTERM, signal_term_handler)
 ### PARAMETERS ################################################################
 neuron_scaling = 2
 Ntot = int(10000 / neuron_scaling)
-NE = int(Ntot * 4/5)
-NI = int(Ntot / 5)
+NI = int(Ntot * 4/5)
+NE = int(Ntot / 5)
 scaling_f = np.sqrt(neuron_scaling)
 x_NI = int(NE/NI)
+initial_exc_w = float(.908 * scaling_f)
+initial_inh_w = float(.567 * scaling_f)
 
 
 params = { \
@@ -51,13 +53,13 @@ params = { \
     "eta" : .01                , # Learning rate
     "rho_0" : 7                , # Target firing rate
     "scaling_f" : scaling_f    , # scaling factor if not using 10000 neurons   
-    "w_ee" : .3 * scaling_f*nS , # exc-exc weight
-    "w_ie" : .3  * scaling_f*nS, # exc-inh weight
-    "w_ii" : 3  * scaling_f*nS , # inh-inh weight
-    "w_ei" : 3 * scaling_f     , # starting weight for the inh to exc connections
+    "w_ee" : initial_exc_w*nS  , # exc-exc weight
+    "w_ie" : initial_exc_w*nS  , # exc-inh weight
+    "w_ii" : initial_inh_w*nS  , # inh-inh weight
+    "w_ei" : initial_inh_w     , # starting weight for the inh to exc connections
     "wmin" : float(0)          , # minimum permissible weight
-    "wmax" : float(300)        , # maximum permissible weight
-    "prep_time" : 20000*second , # give Network time to stabilize
+    "wmax" : 100*initial_inh_w , # maximum permissible weight
+    "prep_time" : 10*second    , # give Network time to stabilize
     "simtime" :  300.001*second, # Simulation time
     "dt" : .1*ms               , # Simulation time step
     "sigma_c" : 200            , # connectivity spread
@@ -66,7 +68,7 @@ params = { \
     "do_profiling" : False     , # whether Brian should profile comp. times
     "do_run" : True            , # whether the simulation should actually run
     "program_dir" : os.getcwd(), # working directory
-    "save_connectivity_to_file": True,  # whether to load connectivity matrix
+    "save_connectivity_to_file": True,   # whether to load connectivity matrix
     "load_connectivity_from_file": True} #whether to save connectivity matrix
 
 
@@ -81,6 +83,7 @@ if __name__ == "__main__":
     else:
         params["sigma_s"] = user_params[0]
         params["sigma_c"] = user_params[1]
+        print("Normal operations started.")
 
 # extract variables from the dictionary to the global namespace
 for key,val in params.items():
@@ -108,7 +111,7 @@ if user_params == "parameter_file_requested":
     sys.exit(0)
 
 print("I'm running a simulation with sigma_s = " + str(sigma_s) + \
-      " and sigma_c = " + str(sigma_c))
+      " and sigma_c = " + str(sigma_c), flush=True)
 
 np.random.seed(1337)
 use_maltes_algorithm = False

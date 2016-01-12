@@ -6,23 +6,26 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 
-prep_time = 20000 # seconds
+prep_time = 5000 # seconds
 rho_0 = 7
+dataset = "_reversed"
 
 program_dir = os.getcwd()
-plots_dir = program_dir + "/plots/rho0_" + str(rho_0) + "Hz/"
+results_dir = program_dir + "/results/rho0_" + str(rho_0) + \
+             "Hz/rates_and_weights" + dataset
+plots_dir = program_dir + "/plots/rho0_" + str(rho_0) + "Hz" + dataset + "/"
 if not os.path.exists(plots_dir):
     os.makedirs(plots_dir)
 
 # Load the parameters file
 try:
-    params_file = pickle.load(open(program_dir + \
-                    "/results/rho0_" + str(rho_0) + "Hz/rates_and_weights/" + \
-                    "parameter_file", "rb"))
+    print("Trying to load dataset from path")
+    print(results_dir)
+    params_file = pickle.load(open(results_dir + "/parameter_file", "rb"))
 except:
     print("Failed to load the example dataset to get the parameters from!")
-        
-        
+
+
 lookuptable = np.array(params_file["lookuptable"])
 simtime = params_file["simtime"] / second
 rho_0 = params_file["rho_0"]
@@ -34,7 +37,10 @@ all_sigma_c = np.sort(np.array(list(set(lookuptable[:,1]))))
 n_sigma_s = len(all_sigma_s)
 n_sigma_c = len(all_sigma_c)
 n_weight_bins = 30
+n_rate_bins = 30
 bin_width = (w_max - w_min) / n_weight_bins
+max_rate_bin = 50
+rate_bin_width = max_rate_bin / n_rate_bins
 use_dpi = 400
 
 # loop over parameter space
@@ -50,27 +56,27 @@ n_max_weights = np.empty(len(lookuptable))
 n_max_weights[:] = np.NaN
 weight_hist = np.empty((n_sigma_s, n_sigma_c, n_weight_bins))
 weight_hist[:] = np.NaN
+rate_hist = np.empty((n_sigma_s, n_sigma_c, n_rate_bins))
+rate_hist[:] = np.NaN
 for table_idx in np.arange(len(lookuptable)):
     sigma_s, sigma_c = lookuptable[table_idx,:]
-    
+
     resultfile = "sigma_s_" + str(sigma_s) + "_" + \
                  "sigma_c_" + str(sigma_c) + "_" + \
                  "prep_" + str(int(prep_time)) + "_seconds"
     # open file
     try:
-        results = pickle.load(open(program_dir + 
-                    "/results/rho0_" + str(rho_0) + "Hz/rates_and_weights/" + \
-                    resultfile, "rb"))
+        results = pickle.load(open(results_dir + "/" + resultfile, "rb"))
         simtime = results["simtime"]
         rho_0 = results["rho_0"]
     except:
         print("Failed for table index " + str(table_idx) +
-              " with sigma_s = " + str(sigma_s) + 
+              " with sigma_s = " + str(sigma_s) +
               ", sigma_c = " + str(sigma_c))
         print("To restart the simulation, remember that the qsub index is " +
               str(table_idx + 1))
         continue
-    
+
     # loop over timesteps
     tmp_sparseness = 0
     tmp_sq_error = 0
@@ -84,10 +90,16 @@ for table_idx in np.arange(len(lookuptable)):
     n_min_weights[table_idx] = len(np.where(results["inhWeights"] < w_min + .01)[0])
     n_max_weights[table_idx] = len(np.where(results["inhWeights"] > w_max - .01)[0])
 
-    hist, bin_edges = np.histogram(results["inhWeights"], n_weight_bins,
+    w_hist, weight_bin_edges = np.histogram(results["inhWeights"], n_weight_bins,
                                    range=(w_min, w_max))
-    weight_hist[all_sigma_s == sigma_s, all_sigma_c == sigma_c, :] = hist
-    
+    weight_hist[all_sigma_s == sigma_s, all_sigma_c == sigma_c, :] = w_hist
+
+    r_hist, rate_bin_edges = np.histogram(results["inh_rates"][:,-1], n_rate_bins,
+                                             range=(0, max_rate_bin))
+    rate_hist[all_sigma_s == sigma_s, all_sigma_c == sigma_c, :] = r_hist
+
+
+
 # masking arrays for NaN values
 sparseness_vec_m = np.ma.array(sparseness_vec, mask=np.isnan(sparseness_vec))
 sq_error_vec_m = np.ma.array(sq_error_vec, mask=np.isnan(sq_error_vec))
@@ -139,26 +151,26 @@ ax = plot_heatmap(n_max_weights, all_sigma_s, all_sigma_c,
 
 
 # Firing rate per diffusion
-rate_per_diffusion = np.ma.average(avg_rate_mat, axis=1)
-fig, ax = plt.subplots(figsize=(8, 8))
-ax.plot(rate_per_diffusion, 'bo', rate_per_diffusion, 'k')
-ax.set_xticks(np.arange(rate_per_diffusion.shape[0]))
-ax.set_xticklabels(all_sigma_s)
-ax.set_xlabel("Diffusion width")
-ax.set_ylabel("Rates [Hz]")
-ax.set_title("Rate per diffusion")
-ax.set_ylim([np.amin(rate_per_diffusion)-1, np.amax(rate_per_diffusion)+1])
-plt.savefig(plots_dir + "Rate per diffusion" + ".png", dpi=use_dpi)
-
+#rate_per_diffusion = np.ma.average(avg_rate_mat, axis=1)
+#fig, ax = plt.subplots(figsize=(8, 8))
+#ax.plot(rate_per_diffusion, 'bo', rate_per_diffusion, 'k')
+#ax.set_xticks(np.arange(rate_per_diffusion.shape[0]))
+#ax.set_xticklabels(all_sigma_s)
+#ax.set_xlabel("Diffusion width")
+#ax.set_ylabel("Rates [Hz]")
+#ax.set_title("Rate per diffusion")
+#ax.set_ylim([np.amin(rate_per_diffusion)-1, np.amax(rate_per_diffusion)+1])
+#plt.savefig(plots_dir + "Rate per diffusion" + ".png", dpi=use_dpi)
+#
 # Weight histograms
 fig, axes = plt.subplots(n_sigma_c, n_sigma_s, figsize=(15, 15),
                          sharex=True, sharey=True)
 for sigma_c_idx, row in enumerate(axes.T):
     for sigma_s_idx, ax in enumerate(row[::-1]):
         hist = weight_hist[sigma_s_idx, sigma_c_idx]
-        ax.bar(bin_edges[:-1], hist, width = bin_width - .01)
+        ax.bar(weight_bin_edges[:-1], hist, width = bin_width - .01)
         ax.set_xticks([])
-        ax.set_yticks([])
+#        ax.set_yticks([])
         ax.set_ylim([0, 10000])
         if sigma_c_idx == 0:
             ax.set_ylabel(all_sigma_s[sigma_s_idx], fontsize=18)
@@ -166,6 +178,20 @@ for sigma_c_idx, row in enumerate(axes.T):
             ax.set_xlabel(all_sigma_c[sigma_c_idx], fontsize=18)
 plt.tight_layout()
 plt.savefig(plots_dir + "Weight histograms.png", dpi=use_dpi)
-
-
-
+#
+#
+#
+## Rate histograms
+#fig, axes = plt.subplots(n_sigma_c, n_sigma_s, figsize=(15, 15),
+#                         sharex=True, sharey=True)
+#for sigma_c_idx, row in enumerate(axes.T):
+#    for sigma_s_idx, ax in enumerate(row[::-1]):
+#        hist = rate_hist[sigma_s_idx, sigma_c_idx]
+#        ax.bar(rate_bin_edges[:-1], hist, width = rate_bin_width - .01)
+#        if sigma_c_idx == 0:
+#            ax.set_ylabel(all_sigma_s[sigma_s_idx], fontsize=18)
+#        if sigma_s_idx == 0:
+#            ax.set_xlabel(all_sigma_c[sigma_c_idx], fontsize=18)
+#plt.tight_layout()
+#plt.savefig(plots_dir + "rate histograms.png", dpi=use_dpi)
+#plt.suptitle("Inhibitory rate histograms")
