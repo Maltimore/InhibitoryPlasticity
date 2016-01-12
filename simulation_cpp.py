@@ -48,7 +48,8 @@ params = { \
     "er" : -80*mV              , # Inhibitory reversal potential
     "vt" : -50.*mV             , # Spiking threshold
     "memc" : 200.0*pfarad      , # Membrane capacitance
-    "bgcurrent" : 200*pA       , # External current
+    "exc_bg_current" : 200*pA  , # External current
+    "inh_bg_current" : 200*pA  , # External current
     "fixed_in_degree" : .02    , # amount of incoming connections
     "eta" : .01                , # Learning rate
     "rho_0" : 7                , # Target firing rate
@@ -59,7 +60,7 @@ params = { \
     "w_ei" : initial_inh_w     , # starting weight for the inh to exc connections
     "wmin" : float(0)          , # minimum permissible weight
     "wmax" : 100*initial_inh_w , # maximum permissible weight
-    "prep_time" : 10*second    , # give Network time to stabilize
+    "prep_time" : 2000*second  , # give Network time to stabilize
     "simtime" :  300.001*second, # Simulation time
     "dt" : .1*ms               , # Simulation time step
     "sigma_c" : 200            , # connectivity spread
@@ -128,6 +129,7 @@ dv/dt=(-gl*(v-el)-(g_ampa*v+g_gaba*(v-er))+bgcurrent)/memc
 dg_ampa/dt = -g_ampa/tau_ampa : siemens
 dg_gaba/dt = -g_gaba/tau_gaba : siemens
 A : 1
+bgcurrent: amp
 '''
 
 neurons = NeuronGroup(NE+NI, model=eqs_neurons, threshold='v > vt',
@@ -136,6 +138,8 @@ neurons = NeuronGroup(NE+NI, model=eqs_neurons, threshold='v > vt',
                       refractory=5*ms)
 Pe = neurons[:NE]
 Pi = neurons[NE:]
+Pe.bgcurrent = exc_bg_current
+Pi.bgcurrent = inh_bg_current
 neurons.v = np.random.uniform(el, vt-2*mV, len(neurons))*volt 
 
 ### SYNAPSES ##################################################################
