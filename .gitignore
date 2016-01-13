@@ -5,6 +5,7 @@ results
 text_output
 errors
 plots
+temp
 *.*~
 *.pyc
 *.save
