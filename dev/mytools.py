@@ -33,8 +33,6 @@ def _exp_function(x_vec, mu, scale):
 
 ### TOOL FUNCTIONS ############################################################
 def lookuptable(neuron_scaling):
-    # these values have to be divided by two later if we have just 5000 
-    # neurons
     sigma_s = np.array([0.,   100., 300., 500.,   900., 1300., 2100., np.infty])
     sigma_c = np.array([200., 400., 900., 1300., 2100., 2900., 3700., np.infty])
     sigma_s /= neuron_scaling
@@ -50,31 +48,38 @@ def lookuptable(neuron_scaling):
     return list(zip(sigma_s, sigma_c))
 
 def parse_argvs(argv, neuron_scaling):
-    all_args = lookuptable(neuron_scaling)
-    n_total = len(all_args)
-    
-    if len(argv) < 2:
-        print("Call for simulation didn't receive enough arguments.")
-        print("Exiting..")
-        return "invalid"
-    elif len(argv) > 2:
-        print("Call for simulation received too many arguments.")
-        print("Exiting..")
-        return "invalid"
-    elif int(argv[1]) > n_total + 1:
-        # notice that qsub indexes from 1 therefor it's not ">="
-        print("Index " + str(argv[1]) + " doesn't match any parameter set.")
-        print("Exiting..")
-        return "invalid"
-    elif int(argv[1]) == n_total + 1:
-        return "parameter_file_requested"
+    """ The first argv (argv[0]) will be the full path to the script that
+        was calling simulation_cpp.py. The second one will be the index to
+        be used to look up the parameter combination. The third one will be
+        the name given to this simulation and also the folder in which to
+        put the results."""
+    parameter_combinations = lookuptable(neuron_scaling)
+    n_total = len(parameter_combinations)
+    default_sigma_s = 300 / neuron_scaling
+    default_sigma_c = 900 / neuron_scaling
+    if len(argv) == 3:
+        simulation_name = argv[2]
     else:
-        index = int(argv[1]) - 1 # qsub cannot give task ID 0.
-        sigma_s = all_args[index][0]
-        sigma_c = all_args[index][1]
-        
-    return sigma_s, sigma_c
+        simulation_name = "default_name"
 
+    if len(argv) == 1:
+        print("No parameter set specified. Using default values.")        
+        return default_sigma_s, default_sigma_c, simulation_name
+    else:
+        if int(argv[1]) > n_total + 1:
+            # notice that qsub indexes from 1 therefore it's not ">="
+            print("Index " + str(argv[1]) + " doesn't match any parameter set.")
+            print("Using default values..")
+            return default_sigma_s, default_sigma_c, simulation_name
+        elif int(argv[1]) == n_total + 1:
+            return "parameter_file_requested", 0, simulation_name
+        else:
+            index = int(argv[1]) - 1 # qsub cannot give task ID 0.
+            sigma_s = parameter_combinations[index][0]
+            sigma_c = parameter_combinations[index][1]
+        return sigma_s, sigma_c, argv[2]
+
+        
 
 def rate_sensor(firing_rates, x_NI, sigma_s):
     """ Compute the firing rates per neuron with an exponential window across

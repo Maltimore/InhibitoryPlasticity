@@ -35,8 +35,8 @@ if normal_mode:
     NI = 1000
     x_NE = 1
     x_NI = 4
-    initial_exc_w = float( 3 * scaling_f)
-    initial_inh_w = float(.3 * scaling_f)
+    initial_exc_w = float(.3 * scaling_f)
+    initial_inh_w = float( 3 * scaling_f)
 else:
     NE = 1000
     NI = 4000
@@ -84,20 +84,18 @@ params = { \
     "do_run" : True            , # whether the simulation should actually run
     "program_dir" : os.getcwd(), # working directory
     "save_connectivity_to_file": True,   # whether to load connectivity matrix
-    "load_connectivity_from_file": True} #whether to save connectivity matrix
+    "load_connectivity_from_file": True,
+    "simulation_name": "default_name"} #whether to save connectivity matrix
 
 
 if __name__ == "__main__":
     user_params = mytools.parse_argvs(sys.argv, neuron_scaling)
-    if user_params == "invalid":
-        print("User input was invalid. Using default values..")
-        params["sigma_s"] = 300
-        params["sigma_c"] = 900
-    elif user_params == "parameter_file_requested":
+    if user_params[0] == "parameter_file_requested":
         print("Parameter file requested.")         
     else:
         params["sigma_s"] = user_params[0]
         params["sigma_c"] = user_params[1]
+        params["simulation_name"] = user_params[2]
         print("Normal operations started.")
 
 # extract variables from the dictionary to the global namespace
@@ -111,6 +109,8 @@ results["NE"] = params["NE"]
 results["NI"] = params["NI"]
 results["x_NI"] = params["x_NI"]
 results["x_NE"] = params["x_NE"]
+results["initial_exc_weight"] = initial_exc_w
+results["initial_inh_weight"] = initial_inh_w
 results["exc_bg_current"] = params["exc_bg_current"]
 results["inh_bg_current"] = params["inh_bg_current"]
 results["prep_time"] = params["prep_time"]
@@ -122,7 +122,7 @@ results["eta"] = params["eta"]
 results["lookuptable"] = mytools.lookuptable(neuron_scaling)
 results["neuron_scaling"] = neuron_scaling
          
-if user_params == "parameter_file_requested":
+if user_params[0] == "parameter_file_requested":
     print("Saving parameter file")
     if not os.path.exists(resultspath + "rates_and_weights"):
         os.makedirs(resultspath + "rates_and_weights")
