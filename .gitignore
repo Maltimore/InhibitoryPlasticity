@@ -6,6 +6,10 @@ text_output
 errors
 plots
 temp
+dev/connectivity_matrices
+dev/cpp_standalone
+dev/__pycache__
+dev/results
 *.*~
 *.pyc
 *.save
