@@ -8,11 +8,11 @@ import matplotlib.pyplot as plt
 
 prep_time = 5000 # seconds
 rho_0 = 7
-dataset = "_reversed"
+dataset = "_reversed_old"
 
 program_dir = os.getcwd()
 results_dir = program_dir + "/results/rho0_" + str(rho_0) + \
-             "Hz/rates_and_weights" + dataset
+             "Hz" + dataset + "/rates_and_weights"
 plots_dir = program_dir + "/plots/rho0_" + str(rho_0) + "Hz" + dataset + "/"
 if not os.path.exists(plots_dir):
     os.makedirs(plots_dir)
