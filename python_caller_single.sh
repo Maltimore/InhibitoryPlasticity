@@ -5,4 +5,4 @@
 #$ -e ./errors/$JOB_NAME
 #$ -o ./text_output/$JOB_NAME
 echo "Running single simulation with name $JOB_NAME and lookupindex ${lookupindex}"
-python simulation_cpp.py ${lookupindex}
+python simulation_cpp.py ${lookupindex} $JOB_NAME
