@@ -6,24 +6,25 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 
-prep_time = 5000 # seconds
-rho_0 = 7
-dataset = "_normal_wrong_bgnoise"
+prep_time = 2000 # seconds
+dataset = "fullresult_exc_50"
+verbose = False
+fullresult_mode = True
 
 program_dir = os.getcwd()
-results_dir = program_dir + "/results/rho0_" + str(rho_0) + \
-             "Hz" + dataset + "/rates_and_weights"
-plots_dir = program_dir + "/plots/rho0_" + str(rho_0) + "Hz" + dataset + "/"
+results_dir = program_dir + "/results/" + dataset
+plots_dir = program_dir + "/plots/" + dataset + "/"
 if not os.path.exists(plots_dir):
     os.makedirs(plots_dir)
 
 # Load the parameters file
 try:
-    print("Trying to load dataset from path")
+    print("Trying to load parameter dataset from path")
     print(results_dir)
     params_file = pickle.load(open(results_dir + "/parameter_file", "rb"))
+    print("Success!")
 except:
-    print("Failed to load the example dataset to get the parameters from!")
+    print("Failed to load the parameter dataset!")
 
 
 lookuptable = np.array(params_file["lookuptable"])
@@ -70,11 +71,12 @@ for table_idx in np.arange(len(lookuptable)):
         simtime = results["simtime"]
         rho_0 = results["rho_0"]
     except:
-        print("Failed for table index " + str(table_idx) +
-              " with sigma_s = " + str(sigma_s) +
-              ", sigma_c = " + str(sigma_c))
-        print("To restart the simulation, remember that the qsub index is " +
-              str(table_idx + 1))
+        if verbose:
+            print("Failed for table index " + str(table_idx) +
+                  " with sigma_s = " + str(sigma_s) +
+                  ", sigma_c = " + str(sigma_c))
+            print("To restart the simulation, remember that the qsub index is " +
+                  str(table_idx + 1))
         continue
 
     # loop over timesteps
@@ -135,19 +137,20 @@ def plot_heatmap(data, all_sigma_s, all_sigma_c, invert=False, title=""):
     plt.savefig(plots_dir + title + ".png", dpi=use_dpi)
     return ax
 
-# Sparseness plot
-ax = plot_heatmap(sparseness_mat, all_sigma_s, all_sigma_c, invert=True,
-                  title="Sparseness")
-# Squared error plot
-ax = plot_heatmap(sq_error_mat, all_sigma_s, all_sigma_c, title="Squared error")
-# Average rates plot
-ax = plot_heatmap(avg_rate_mat, all_sigma_s, all_sigma_c, title="Average rates")
-# Min weights plot
-ax = plot_heatmap(n_min_weights, all_sigma_s, all_sigma_c,
-                  title="Number of minimum weights")
-# Max weights plot
-ax = plot_heatmap(n_max_weights, all_sigma_s, all_sigma_c,
-                  title="Number of max weights")
+if not fullresult_mode:
+    # Sparseness plot
+    ax = plot_heatmap(sparseness_mat, all_sigma_s, all_sigma_c, invert=True,
+                      title="Sparseness")
+    # Squared error plot
+    ax = plot_heatmap(sq_error_mat, all_sigma_s, all_sigma_c, title="Squared error")
+    # Average rates plot
+    ax = plot_heatmap(avg_rate_mat, all_sigma_s, all_sigma_c, title="Average rates")
+    # Min weights plot
+    ax = plot_heatmap(n_min_weights, all_sigma_s, all_sigma_c,
+                      title="Number of minimum weights")
+    # Max weights plot
+    ax = plot_heatmap(n_max_weights, all_sigma_s, all_sigma_c,
+                      title="Number of max weights")
 
 
 # Firing rate per diffusion
