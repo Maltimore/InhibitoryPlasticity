@@ -6,10 +6,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 
-prep_time = 2000 # seconds
-dataset = "fullresult_exc_50"
+dataset = "exc_50_bg_rho0_7Hz"
 verbose = False
-fullresult_mode = True
+fullresult_mode = False
 
 program_dir = os.getcwd()
 results_dir = program_dir + "/results/" + dataset
@@ -29,6 +28,7 @@ except:
 
 lookuptable = np.array(params_file["lookuptable"])
 simtime = params_file["simtime"] / second
+prep_time = params_file["prep_time"] / second
 rho_0 = params_file["rho_0"]
 w_min = params_file["wmin"]
 w_max = params_file["wmax"]
@@ -184,17 +184,49 @@ if not fullresult_mode:
 #
 #
 #
-## Rate histograms
-#fig, axes = plt.subplots(n_sigma_c, n_sigma_s, figsize=(15, 15),
-#                         sharex=True, sharey=True)
-#for sigma_c_idx, row in enumerate(axes.T):
-#    for sigma_s_idx, ax in enumerate(row[::-1]):
-#        hist = rate_hist[sigma_s_idx, sigma_c_idx]
-#        ax.bar(rate_bin_edges[:-1], hist, width = rate_bin_width - .01)
-#        if sigma_c_idx == 0:
-#            ax.set_ylabel(all_sigma_s[sigma_s_idx], fontsize=18)
-#        if sigma_s_idx == 0:
-#            ax.set_xlabel(all_sigma_c[sigma_c_idx], fontsize=18)
-#plt.tight_layout()
-#plt.savefig(plots_dir + "rate histograms.png", dpi=use_dpi)
-#plt.suptitle("Inhibitory rate histograms")
+# Rate histograms
+fig, axes = plt.subplots(n_sigma_c, n_sigma_s, figsize=(15, 15),
+                         sharex=True, sharey=True)
+for sigma_c_idx, row in enumerate(axes.T):
+    for sigma_s_idx, ax in enumerate(row[::-1]):
+        hist = rate_hist[sigma_s_idx, sigma_c_idx]
+        ax.bar(rate_bin_edges[:-1], hist, width = rate_bin_width - .01)
+        if sigma_c_idx == 0:
+            ax.set_ylabel(all_sigma_s[sigma_s_idx], fontsize=18)
+        if sigma_s_idx == 0:
+            ax.set_xlabel(all_sigma_c[sigma_c_idx], fontsize=18)
+plt.tight_layout()
+plt.savefig(plots_dir + "rate histograms.png", dpi=use_dpi)
+plt.suptitle("Inhibitory rate histograms")
+
+
+if fullresult_mode:
+    for table_idx in np.arange(len(lookuptable)):
+        sigma_s, sigma_c = lookuptable[table_idx,:]
+    
+        resultfile = "sigma_s_" + str(sigma_s) + "_" + \
+                     "sigma_c_" + str(sigma_c) + "_" + \
+                     "prep_" + str(int(prep_time)) + "_seconds"
+        # open file
+        try:
+            results = pickle.load(open(results_dir + "/" + resultfile, "rb"))
+            print("Loaded full result dataset.")            
+        except:
+            if verbose:
+                print("Failed for table index " + str(table_idx) +
+                      " with sigma_s = " + str(sigma_s) +
+                      ", sigma_c = " + str(sigma_c))
+                print("To restart the simulation, remember that the qsub index is " +
+                      str(table_idx + 1))
+            continue
+    prep_time = results["prep_time"]
+    simtime = results["simtime"]
+    
+    rho_0 = results["rho_0"]    
+    inh_spike_idxes = results["inh_spike_neuron_idxes"]
+    inh_spike_times = results["inh_spike_times"]
+    
+    plt.plot(inh_spike_times, inh_spike_idxes, '.k')
+    plt.xlabel('Time (ms)')
+    plt.ylabel('Neuron index')
+    plt.xlim([prep_time/second, (prep_time)/second +1])
