@@ -5,29 +5,29 @@ import os
 import numpy as np
 import matplotlib.pyplot as plt
 
-
-prep_time = 5000 # seconds
-rho_0 = 7
-dataset = "_normal_wrong_bgnoise"
+dataset= "nonreversed_normal_rho0_15Hz"
+verbose = False
+fullresult_mode = True
 
 program_dir = os.getcwd()
-results_dir = program_dir + "/results/rho0_" + str(rho_0) + \
-             "Hz" + dataset + "/rates_and_weights"
-plots_dir = program_dir + "/plots/rho0_" + str(rho_0) + "Hz" + dataset + "/"
+results_dir = program_dir + "/results/" + dataset
+plots_dir = program_dir + "/plots/" + dataset + "/"
 if not os.path.exists(plots_dir):
     os.makedirs(plots_dir)
 
 # Load the parameters file
 try:
-    print("Trying to load dataset from path")
+    print("Trying to load parameter dataset from path")
     print(results_dir)
     params_file = pickle.load(open(results_dir + "/parameter_file", "rb"))
+    print("Success!")
 except:
-    print("Failed to load the example dataset to get the parameters from!")
+    print("Failed to load the parameter dataset!")
 
 
 lookuptable = np.array(params_file["lookuptable"])
 simtime = params_file["simtime"] / second
+prep_time = params_file["prep_time"] / second
 rho_0 = params_file["rho_0"]
 w_min = params_file["wmin"]
 w_max = params_file["wmax"]
@@ -70,11 +70,12 @@ for table_idx in np.arange(len(lookuptable)):
         simtime = results["simtime"]
         rho_0 = results["rho_0"]
     except:
-        print("Failed for table index " + str(table_idx) +
-              " with sigma_s = " + str(sigma_s) +
-              ", sigma_c = " + str(sigma_c))
-        print("To restart the simulation, remember that the qsub index is " +
-              str(table_idx + 1))
+        if verbose:
+            print("Failed for table index " + str(table_idx) +
+                  " with sigma_s = " + str(sigma_s) +
+                  ", sigma_c = " + str(sigma_c))
+            print("To restart the simulation, remember that the qsub index is " +
+                  str(table_idx + 1))
         continue
 
     # loop over timesteps
@@ -135,63 +136,164 @@ def plot_heatmap(data, all_sigma_s, all_sigma_c, invert=False, title=""):
     plt.savefig(plots_dir + title + ".png", dpi=use_dpi)
     return ax
 
-# Sparseness plot
-ax = plot_heatmap(sparseness_mat, all_sigma_s, all_sigma_c, invert=True,
-                  title="Sparseness")
-# Squared error plot
-ax = plot_heatmap(sq_error_mat, all_sigma_s, all_sigma_c, title="Squared error")
-# Average rates plot
-ax = plot_heatmap(avg_rate_mat, all_sigma_s, all_sigma_c, title="Average rates")
-# Min weights plot
-ax = plot_heatmap(n_min_weights, all_sigma_s, all_sigma_c,
-                  title="Number of minimum weights")
-# Max weights plot
-ax = plot_heatmap(n_max_weights, all_sigma_s, all_sigma_c,
-                  title="Number of max weights")
+if not fullresult_mode:
+    # Sparseness plot
+    ax = plot_heatmap(sparseness_mat, all_sigma_s, all_sigma_c, invert=True,
+                      title="Sparseness")
+    # Squared error plot
+    ax = plot_heatmap(sq_error_mat, all_sigma_s, all_sigma_c, title="Squared error")
+    # Average rates plot
+    ax = plot_heatmap(avg_rate_mat, all_sigma_s, all_sigma_c, title="Average rates")
+    # Min weights plot
+    ax = plot_heatmap(n_min_weights, all_sigma_s, all_sigma_c,
+                      title="Number of minimum weights")
+    # Max weights plot
+    ax = plot_heatmap(n_max_weights, all_sigma_s, all_sigma_c,
+                      title="Number of max weights")
 
 
-# Firing rate per diffusion
-#rate_per_diffusion = np.ma.average(avg_rate_mat, axis=1)
-#fig, ax = plt.subplots(figsize=(8, 8))
-#ax.plot(rate_per_diffusion, 'bo', rate_per_diffusion, 'k')
-#ax.set_xticks(np.arange(rate_per_diffusion.shape[0]))
-#ax.set_xticklabels(all_sigma_s)
-#ax.set_xlabel("Diffusion width")
-#ax.set_ylabel("Rates [Hz]")
-#ax.set_title("Rate per diffusion")
-#ax.set_ylim([np.amin(rate_per_diffusion)-1, np.amax(rate_per_diffusion)+1])
-#plt.savefig(plots_dir + "Rate per diffusion" + ".png", dpi=use_dpi)
-#
-# Weight histograms
-#fig, axes = plt.subplots(n_sigma_c, n_sigma_s, figsize=(15, 15),
-#                         sharex=True, sharey=True)
-#for sigma_c_idx, row in enumerate(axes.T):
-#    for sigma_s_idx, ax in enumerate(row[::-1]):
-#        hist = weight_hist[sigma_s_idx, sigma_c_idx]
-#        ax.bar(weight_bin_edges[:-1], hist, width = bin_width - .01)
-#        ax.set_xticks([])
-##        ax.set_yticks([])
-#        ax.set_ylim([0, 10000])
-#        if sigma_c_idx == 0:
-#            ax.set_ylabel(all_sigma_s[sigma_s_idx], fontsize=18)
-#        if sigma_s_idx == 0:
-#            ax.set_xlabel(all_sigma_c[sigma_c_idx], fontsize=18)
-#plt.tight_layout()
-#plt.savefig(plots_dir + "Weight histograms.png", dpi=use_dpi)
-#
-#
-#
-## Rate histograms
-#fig, axes = plt.subplots(n_sigma_c, n_sigma_s, figsize=(15, 15),
-#                         sharex=True, sharey=True)
-#for sigma_c_idx, row in enumerate(axes.T):
-#    for sigma_s_idx, ax in enumerate(row[::-1]):
-#        hist = rate_hist[sigma_s_idx, sigma_c_idx]
-#        ax.bar(rate_bin_edges[:-1], hist, width = rate_bin_width - .01)
-#        if sigma_c_idx == 0:
-#            ax.set_ylabel(all_sigma_s[sigma_s_idx], fontsize=18)
-#        if sigma_s_idx == 0:
-#            ax.set_xlabel(all_sigma_c[sigma_c_idx], fontsize=18)
-#plt.tight_layout()
-#plt.savefig(plots_dir + "rate histograms.png", dpi=use_dpi)
-#plt.suptitle("Inhibitory rate histograms")
+#    # Firing rate per diffusion
+#    rate_per_diffusion = np.ma.average(avg_rate_mat, axis=1)
+#    fig, ax = plt.subplots(figsize=(8, 8))
+#    ax.plot(rate_per_diffusion, 'bo', rate_per_diffusion, 'k')
+#    ax.set_xticks(np.arange(rate_per_diffusion.shape[0]))
+#    ax.set_xticklabels(all_sigma_s)
+#    ax.set_xlabel("Diffusion width")
+#    ax.set_ylabel("Rates [Hz]")
+#    ax.set_title("Rate per diffusion")
+#    ax.set_ylim([np.amin(rate_per_diffusion)-1, np.amax(rate_per_diffusion)+1])
+#    plt.savefig(plots_dir + "Rate per diffusion" + ".png", dpi=use_dpi)
+#    
+#     Weight histograms
+#    fig, axes = plt.subplots(n_sigma_c, n_sigma_s, figsize=(15, 15),
+#                             sharex=True, sharey=True)
+#    for sigma_c_idx, row in enumerate(axes.T):
+#        for sigma_s_idx, ax in enumerate(row[::-1]):
+#            hist = weight_hist[sigma_s_idx, sigma_c_idx]
+#            ax.bar(weight_bin_edges[:-1], hist, width = bin_width - .01)
+#            ax.set_xticks([])
+#    #        ax.set_yticks([])
+#            ax.set_ylim([0, 10000])
+#            if sigma_c_idx == 0:
+#                ax.set_ylabel(all_sigma_s[sigma_s_idx], fontsize=18)
+#            if sigma_s_idx == 0:
+#                ax.set_xlabel(all_sigma_c[sigma_c_idx], fontsize=18)
+#    plt.tight_layout()
+#    plt.savefig(plots_dir + "Weight histograms.png", dpi=use_dpi)
+#    
+#    
+#    
+#    # Rate histograms
+#    fig, axes = plt.subplots(n_sigma_c, n_sigma_s, figsize=(15, 15),
+#                             sharex=True, sharey=True)
+#    for sigma_c_idx, row in enumerate(axes.T):
+#        for sigma_s_idx, ax in enumerate(row[::-1]):
+#            hist = rate_hist[sigma_s_idx, sigma_c_idx]
+#            ax.bar(rate_bin_edges[:-1], hist, width = rate_bin_width - .01)
+#            if sigma_c_idx == 0:
+#                ax.set_ylabel(all_sigma_s[sigma_s_idx], fontsize=18)
+#            if sigma_s_idx == 0:
+#                ax.set_xlabel(all_sigma_c[sigma_c_idx], fontsize=18)
+#    plt.tight_layout()
+#    plt.savefig(plots_dir + "rate histograms.png", dpi=use_dpi)
+#    plt.suptitle("Inhibitory rate histograms")
+
+
+if fullresult_mode:
+    for table_idx in np.arange(len(lookuptable)):
+        sigma_s, sigma_c = lookuptable[table_idx,:]
+    
+        resultfile = "sigma_s_" + str(sigma_s) + "_" + \
+                     "sigma_c_" + str(sigma_c) + "_" + \
+                     "prep_" + str(int(prep_time)) + "_seconds"
+        # open file
+        try:
+            results = pickle.load(open(results_dir + "/" + resultfile, "rb"))
+            results["sigma_s"] = sigma_s
+            results["sigma_c"] = sigma_c
+            print("Loaded full result dataset.")            
+        except:
+            if verbose:
+                print("Failed for table index " + str(table_idx) +
+                      " with sigma_s = " + str(sigma_s) +
+                      ", sigma_c = " + str(sigma_c))
+                print("To restart the simulation, remember that the qsub index is " +
+                      str(table_idx + 1))
+            continue
+    prep_time = results["prep_time"]
+    simtime = results["simtime"]
+    
+    rho_0 = results["rho_0"]    
+    inh_spike_idxes = results["inh_spike_neuron_idxes"]
+    inh_spike_times = results["inh_spike_times"]
+    
+#    plt.figure()
+#    plt.plot(inh_spike_times, inh_spike_idxes, '.k')
+#    plt.xlabel('Time [s]')
+#    plt.ylabel('Neuron index')
+#    plt.xlim([prep_time/second, (prep_time)/second +3])
+#    plt.title("Raster plot of firing in inh cells")
+#    plt.savefig(plots_dir + "inh_raster_plot.png", dpi=use_dpi)
+#    
+#    exc_spike_idxes = results["exc_spike_neuron_idxes"]
+#    exc_spike_times = results["exc_spike_times"]
+#    
+#    plt.figure()
+#    plt.plot(exc_spike_times, exc_spike_idxes, '.k')
+#    plt.xlabel('Time [s]')
+#    plt.ylabel('Neuron index')
+#    plt.xlim([prep_time/second, (prep_time)/second +3])
+#    plt.title("Raster plot of firing in exc cells")
+#    plt.savefig(plots_dir + "exc_raster_plot.png", dpi=use_dpi)
+    
+    
+    
+   
+
+# CALCULATING FEEDBACK CONNECTIONS
+if fullresult_mode:
+    conn_filename = mytools._create_connectivity_filename("inh_to_exc",
+                                                      results["sigma_c"],
+                                                      1000,
+                                                      4000)
+
+    i_to_e = pickle.load(open(program_dir + "/connectivity_matrices/" +
+                                conn_filename, "rb"))
+    conn_filename = mytools._create_connectivity_filename("exc_to_inh",
+                                                      results["sigma_c"],
+                                                      4000,
+                                                      1000)
+    e_to_i = pickle.load(open(program_dir + "/connectivity_matrices/" +
+                                conn_filename, "rb"))
+
+    inh_feedbacks = np.empty(results["NI"])
+    for idx_neuron in np.arange(results["NI"]):
+        # loop over all inhibitory neurons
+        feedback = 0
+        idx_neurons_projections = i_to_e[i_to_e[:,0]==idx_neuron, 1]
+        
+        for post_neuron in idx_neurons_projections:
+            # loop over all the connections that the current index neuron has
+            
+            post_neurons_projections = e_to_i[e_to_i[:,0]==post_neuron, 1]
+            if idx_neuron in post_neurons_projections:
+                # if the current postsynaptic neuron has a connection back to
+                # the original neuron, increment feedback
+                feedback += 1
+        inh_feedbacks[idx_neuron] = feedback
+        
+        
+
+    from scipy import stats
+    slope, intercept, r_value, p_value, std_err = stats.linregress(inh_feedbacks, rates)
+    print("The p value for the regression test for feedback connections" +
+          " and rates is " + str(p_value))
+    plt.figure()
+    plt.scatter(inh_feedbacks, rates)
+    
+    errors = np.square(rates-results["rho_0"])
+    slope, intercept, r_value, p_value, std_err = stats.linregress(inh_feedbacks, errors)
+    print("The p value for the regression test for feedback connections" +
+          " and square errors is " + str(p_value))
+    plt.figure()
+    plt.scatter(inh_feedbacks, rates)

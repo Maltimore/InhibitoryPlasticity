@@ -6,9 +6,10 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 
-dataset = "exc_50_bg_rho0_7Hz"
+#dataset = "inh_bg_50_2015_01_27_rho0_7Hz"
+dataset= "nonreversed_normal_rho0_15Hz"
 verbose = False
-fullresult_mode = False
+fullresult_mode = True
 
 program_dir = os.getcwd()
 results_dir = program_dir + "/results/" + dataset
@@ -153,51 +154,51 @@ if not fullresult_mode:
                       title="Number of max weights")
 
 
-# Firing rate per diffusion
-#rate_per_diffusion = np.ma.average(avg_rate_mat, axis=1)
-#fig, ax = plt.subplots(figsize=(8, 8))
-#ax.plot(rate_per_diffusion, 'bo', rate_per_diffusion, 'k')
-#ax.set_xticks(np.arange(rate_per_diffusion.shape[0]))
-#ax.set_xticklabels(all_sigma_s)
-#ax.set_xlabel("Diffusion width")
-#ax.set_ylabel("Rates [Hz]")
-#ax.set_title("Rate per diffusion")
-#ax.set_ylim([np.amin(rate_per_diffusion)-1, np.amax(rate_per_diffusion)+1])
-#plt.savefig(plots_dir + "Rate per diffusion" + ".png", dpi=use_dpi)
-#
-# Weight histograms
-#fig, axes = plt.subplots(n_sigma_c, n_sigma_s, figsize=(15, 15),
-#                         sharex=True, sharey=True)
-#for sigma_c_idx, row in enumerate(axes.T):
-#    for sigma_s_idx, ax in enumerate(row[::-1]):
-#        hist = weight_hist[sigma_s_idx, sigma_c_idx]
-#        ax.bar(weight_bin_edges[:-1], hist, width = bin_width - .01)
-#        ax.set_xticks([])
-##        ax.set_yticks([])
-#        ax.set_ylim([0, 10000])
-#        if sigma_c_idx == 0:
-#            ax.set_ylabel(all_sigma_s[sigma_s_idx], fontsize=18)
-#        if sigma_s_idx == 0:
-#            ax.set_xlabel(all_sigma_c[sigma_c_idx], fontsize=18)
-#plt.tight_layout()
-#plt.savefig(plots_dir + "Weight histograms.png", dpi=use_dpi)
-#
-#
-#
-# Rate histograms
-fig, axes = plt.subplots(n_sigma_c, n_sigma_s, figsize=(15, 15),
-                         sharex=True, sharey=True)
-for sigma_c_idx, row in enumerate(axes.T):
-    for sigma_s_idx, ax in enumerate(row[::-1]):
-        hist = rate_hist[sigma_s_idx, sigma_c_idx]
-        ax.bar(rate_bin_edges[:-1], hist, width = rate_bin_width - .01)
-        if sigma_c_idx == 0:
-            ax.set_ylabel(all_sigma_s[sigma_s_idx], fontsize=18)
-        if sigma_s_idx == 0:
-            ax.set_xlabel(all_sigma_c[sigma_c_idx], fontsize=18)
-plt.tight_layout()
-plt.savefig(plots_dir + "rate histograms.png", dpi=use_dpi)
-plt.suptitle("Inhibitory rate histograms")
+#    # Firing rate per diffusion
+#    rate_per_diffusion = np.ma.average(avg_rate_mat, axis=1)
+#    fig, ax = plt.subplots(figsize=(8, 8))
+#    ax.plot(rate_per_diffusion, 'bo', rate_per_diffusion, 'k')
+#    ax.set_xticks(np.arange(rate_per_diffusion.shape[0]))
+#    ax.set_xticklabels(all_sigma_s)
+#    ax.set_xlabel("Diffusion width")
+#    ax.set_ylabel("Rates [Hz]")
+#    ax.set_title("Rate per diffusion")
+#    ax.set_ylim([np.amin(rate_per_diffusion)-1, np.amax(rate_per_diffusion)+1])
+#    plt.savefig(plots_dir + "Rate per diffusion" + ".png", dpi=use_dpi)
+#    
+#     Weight histograms
+#    fig, axes = plt.subplots(n_sigma_c, n_sigma_s, figsize=(15, 15),
+#                             sharex=True, sharey=True)
+#    for sigma_c_idx, row in enumerate(axes.T):
+#        for sigma_s_idx, ax in enumerate(row[::-1]):
+#            hist = weight_hist[sigma_s_idx, sigma_c_idx]
+#            ax.bar(weight_bin_edges[:-1], hist, width = bin_width - .01)
+#            ax.set_xticks([])
+#    #        ax.set_yticks([])
+#            ax.set_ylim([0, 10000])
+#            if sigma_c_idx == 0:
+#                ax.set_ylabel(all_sigma_s[sigma_s_idx], fontsize=18)
+#            if sigma_s_idx == 0:
+#                ax.set_xlabel(all_sigma_c[sigma_c_idx], fontsize=18)
+#    plt.tight_layout()
+#    plt.savefig(plots_dir + "Weight histograms.png", dpi=use_dpi)
+#    
+#    
+#    
+#    # Rate histograms
+#    fig, axes = plt.subplots(n_sigma_c, n_sigma_s, figsize=(15, 15),
+#                             sharex=True, sharey=True)
+#    for sigma_c_idx, row in enumerate(axes.T):
+#        for sigma_s_idx, ax in enumerate(row[::-1]):
+#            hist = rate_hist[sigma_s_idx, sigma_c_idx]
+#            ax.bar(rate_bin_edges[:-1], hist, width = rate_bin_width - .01)
+#            if sigma_c_idx == 0:
+#                ax.set_ylabel(all_sigma_s[sigma_s_idx], fontsize=18)
+#            if sigma_s_idx == 0:
+#                ax.set_xlabel(all_sigma_c[sigma_c_idx], fontsize=18)
+#    plt.tight_layout()
+#    plt.savefig(plots_dir + "rate histograms.png", dpi=use_dpi)
+#    plt.suptitle("Inhibitory rate histograms")
 
 
 if fullresult_mode:
@@ -226,7 +227,34 @@ if fullresult_mode:
     inh_spike_idxes = results["inh_spike_neuron_idxes"]
     inh_spike_times = results["inh_spike_times"]
     
+    plt.figure()
     plt.plot(inh_spike_times, inh_spike_idxes, '.k')
-    plt.xlabel('Time (ms)')
+    plt.xlabel('Time [s]')
     plt.ylabel('Neuron index')
-    plt.xlim([prep_time/second, (prep_time)/second +1])
+    plt.xlim([prep_time/second, (prep_time)/second +3])
+    plt.title("Raster plot of firing in inh cells")
+    plt.savefig(plots_dir + "inh_raster_plot.png", dpi=use_dpi)
+    
+    exc_spike_idxes = results["exc_spike_neuron_idxes"]
+    exc_spike_times = results["exc_spike_times"]
+    
+    plt.figure()
+    plt.plot(exc_spike_times, exc_spike_idxes, '.k')
+    plt.xlabel('Time [s]')
+    plt.ylabel('Neuron index')
+    plt.xlim([prep_time/second, (prep_time)/second +3])
+    plt.title("Raster plot of firing in exc cells")
+    plt.savefig(plots_dir + "exc_raster_plot.png", dpi=use_dpi)
+    
+    
+    
+   
+
+# CALCULATING FEEDBACK CONNECTIONS
+if fullresult_mode:
+    conn_filename = mytools._create_connectivity_filename("inh_to_exc",
+                                                      results["sigma_c"],
+                                                      1000,
+                                                      4000)
+
+
