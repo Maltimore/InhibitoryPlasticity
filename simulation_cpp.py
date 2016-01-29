@@ -74,8 +74,8 @@ params = { \
     "w_ei" : initial_inh_w     , # starting weight for the inh to exc connections
     "wmin" : float(0)          , # minimum permissible weight
     "wmax" : 100*initial_inh_w , # maximum permissible weight
-    "prep_time" : 20*second  , # give Network time to stabilize
-    "simtime" :  10.001*second, # Simulation time
+    "prep_time" : 2000*second  , # give Network time to stabilize
+    "simtime" :  300.001*second, # Simulation time
     "dt" : .1*ms               , # Simulation time step
     "sigma_c" : 200            , # connectivity spread
     "sigma_s" : 200            , # sensor width
@@ -91,12 +91,14 @@ params = { \
 if __name__ == "__main__":
     user_params = mytools.parse_argvs(sys.argv, neuron_scaling)
     if user_params[0] == "parameter_file_requested":
+        params["simulation_name"] = user_params[2]
         print("Parameter file requested.")         
     else:
         params["sigma_s"] = user_params[0]
         params["sigma_c"] = user_params[1]
         params["simulation_name"] = user_params[2]
-        print("Normal operations started.")
+        print("Normal operations started for the simulation with the name"
+              + params["simulation_name"])
 
 # extract variables from the dictionary to the global namespace
 for key,val in params.items():
@@ -127,10 +129,9 @@ results["neuron_scaling"] = neuron_scaling
          
 if user_params[0] == "parameter_file_requested":
     print("Saving parameter file")
-    if not os.path.exists(resultspath + "rates_and_weights"):
-        os.makedirs(resultspath + "rates_and_weights")
-    pickle.dump(results, open(resultspath + "rates_and_weights/"
-                              + "parameter_file", "wb"))
+    if not os.path.exists(resultspath):
+        os.makedirs(resultspath)
+    pickle.dump(results, open(resultspath + "parameter_file", "wb"))
     sys.stdout.flush()
     sys.exit(0)
 
