@@ -5,7 +5,7 @@ import os
 import numpy as np
 import matplotlib.pyplot as plt
 
-dataset = "nonreversed_rho0_7Hz"
+dataset = "nonreversed_normal_rho0_7Hz"
 verbose = False
 fullresult_mode = False
 do_histograms = True
@@ -165,9 +165,9 @@ if not fullresult_mode and do_histograms:
     ax.set_xticklabels(all_sigma_s)
     ax.set_xlabel("Diffusion width")
     ax.set_ylabel("Rates [Hz]")
-    ax.set_title("Rate per diffusion")
+#    ax.set_title("Rate per diffusion")
     ax.set_ylim([np.amin(rate_per_diffusion)-1, np.amax(rate_per_diffusion)+1])
-    plt.savefig(plots_dir + "Rate per diffusion" + ".png", dpi=use_dpi)
+    plt.savefig(plots_dir + "Rate_per_diffusion_rho0_" + str(rho_0) + "Hz.png", dpi=use_dpi)
     
     # Weight histograms
     fig, axes = plt.subplots(n_sigma_c, n_sigma_s, figsize=(15, 15),
@@ -184,7 +184,7 @@ if not fullresult_mode and do_histograms:
             if sigma_s_idx == 0:
                 ax.set_xlabel(all_sigma_c[sigma_c_idx], fontsize=18)
     plt.tight_layout()
-    plt.savefig(plots_dir + "Weight histograms.png", dpi=use_dpi)
+    plt.savefig(plots_dir + "Weight histograms_rho0_" + str(rho_0) + "Hz.png", dpi=use_dpi)
     
     
     
