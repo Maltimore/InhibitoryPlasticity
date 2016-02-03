@@ -5,11 +5,12 @@ import os
 import numpy as np
 import matplotlib.pyplot as plt
 
-dataset = "nonreversed_normal_rho0_7Hz"
+dataset = "nonreversed_rho0_7Hz"
 verbose = False
 fullresult_mode = False
 do_histograms = True
 my_fontsize=16
+use_dpi = 400
 
 program_dir = os.getcwd()
 results_dir = program_dir + "/results/" + dataset
@@ -43,7 +44,7 @@ n_rate_bins = 30
 bin_width = (w_max - w_min) / n_weight_bins
 max_rate_bin = 50
 rate_bin_width = max_rate_bin / n_rate_bins
-use_dpi = 400
+
 
 # loop over parameter space
 sparseness_vec = np.empty(len(lookuptable))
@@ -162,12 +163,13 @@ if not fullresult_mode and do_histograms:
     fig, ax = plt.subplots(figsize=(8, 8))
     ax.plot(rate_per_diffusion, 'bo', rate_per_diffusion, 'k')
     ax.set_xticks(np.arange(rate_per_diffusion.shape[0]))
-    ax.set_xticklabels(all_sigma_s)
-    ax.set_xlabel("Diffusion width")
-    ax.set_ylabel("Rates [Hz]")
+    ax.set_xticklabels(all_sigma_s, fontsize=my_fontsize)
+    ax.tick_params(labelsize=my_fontsize)
+    ax.set_xlabel("Diffusion width", fontsize=my_fontsize)
+    ax.set_ylabel("Rates [Hz]", fontsize=my_fontsize)
 #    ax.set_title("Rate per diffusion")
     ax.set_ylim([np.amin(rate_per_diffusion)-1, np.amax(rate_per_diffusion)+1])
-    plt.savefig(plots_dir + "Rate_per_diffusion_rho0_" + str(rho_0) + "Hz.png", dpi=use_dpi)
+    plt.savefig(plots_dir + "Rate_per_diffusion_rho0_" + str(rho_0) + "Hz.png", dpi=600)
     
     # Weight histograms
     fig, axes = plt.subplots(n_sigma_c, n_sigma_s, figsize=(15, 15),
