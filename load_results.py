@@ -5,11 +5,9 @@ import os
 import numpy as np
 import matplotlib.pyplot as plt
 
-
-#dataset = "inh_bg_50_2015_01_27_rho0_7Hz"
-dataset= "nonreversed_normal_rho0_15Hz"
+dataset = "nonreversed_normal_rho0_7Hz"
 verbose = False
-fullresult_mode = True
+fullresult_mode = False
 
 program_dir = os.getcwd()
 results_dir = program_dir + "/results/" + dataset
@@ -211,6 +209,8 @@ if fullresult_mode:
         # open file
         try:
             results = pickle.load(open(results_dir + "/" + resultfile, "rb"))
+            results["sigma_s"] = sigma_s
+            results["sigma_c"] = sigma_c
             print("Loaded full result dataset.")            
         except:
             if verbose:
@@ -227,24 +227,24 @@ if fullresult_mode:
     inh_spike_idxes = results["inh_spike_neuron_idxes"]
     inh_spike_times = results["inh_spike_times"]
     
-    plt.figure()
-    plt.plot(inh_spike_times, inh_spike_idxes, '.k')
-    plt.xlabel('Time [s]')
-    plt.ylabel('Neuron index')
-    plt.xlim([prep_time/second, (prep_time)/second +3])
-    plt.title("Raster plot of firing in inh cells")
-    plt.savefig(plots_dir + "inh_raster_plot.png", dpi=use_dpi)
-    
-    exc_spike_idxes = results["exc_spike_neuron_idxes"]
-    exc_spike_times = results["exc_spike_times"]
-    
-    plt.figure()
-    plt.plot(exc_spike_times, exc_spike_idxes, '.k')
-    plt.xlabel('Time [s]')
-    plt.ylabel('Neuron index')
-    plt.xlim([prep_time/second, (prep_time)/second +3])
-    plt.title("Raster plot of firing in exc cells")
-    plt.savefig(plots_dir + "exc_raster_plot.png", dpi=use_dpi)
+#    plt.figure()
+#    plt.plot(inh_spike_times, inh_spike_idxes, '.k')
+#    plt.xlabel('Time [s]')
+#    plt.ylabel('Neuron index')
+#    plt.xlim([prep_time/second, (prep_time)/second +3])
+#    plt.title("Raster plot of firing in inh cells")
+#    plt.savefig(plots_dir + "inh_raster_plot.png", dpi=use_dpi)
+#    
+#    exc_spike_idxes = results["exc_spike_neuron_idxes"]
+#    exc_spike_times = results["exc_spike_times"]
+#    
+#    plt.figure()
+#    plt.plot(exc_spike_times, exc_spike_idxes, '.k')
+#    plt.xlabel('Time [s]')
+#    plt.ylabel('Neuron index')
+#    plt.xlim([prep_time/second, (prep_time)/second +3])
+#    plt.title("Raster plot of firing in exc cells")
+#    plt.savefig(plots_dir + "exc_raster_plot.png", dpi=use_dpi)
     
     
     
@@ -257,4 +257,55 @@ if fullresult_mode:
                                                       1000,
                                                       4000)
 
+    i_to_e = pickle.load(open(program_dir + "/connectivity_matrices/" +
+                                conn_filename, "rb"))
+    conn_filename = mytools._create_connectivity_filename("exc_to_inh",
+                                                      results["sigma_c"],
+                                                      4000,
+                                                      1000)
+    e_to_i = pickle.load(open(program_dir + "/connectivity_matrices/" +
+                                conn_filename, "rb"))
 
+    inh_feedbacks = np.empty(results["NI"])
+    for idx_neuron in np.arange(results["NI"]):
+        # loop over all inhibitory neurons
+        feedback = 0
+        idx_neurons_projections = i_to_e[i_to_e[:,0]==idx_neuron, 1]
+        
+        for post_neuron in idx_neurons_projections:
+            # loop over all the connections that the current index neuron has
+            
+            post_neurons_projections = e_to_i[e_to_i[:,0]==post_neuron, 1]
+            if idx_neuron in post_neurons_projections:
+                # if the current postsynaptic neuron has a connection back to
+                # the original neuron, increment feedback
+                feedback += 1
+        inh_feedbacks[idx_neuron] = feedback
+        
+        
+
+    from scipy import stats
+    slope, intercept, r_value, p_value, std_err = stats.linregress(inh_feedbacks, rates)
+    print("The p value for the regression test for feedback connections" +
+          " and rates is " + str(p_value))
+    plt.figure()
+    plt.scatter(inh_feedbacks, rates)
+    plt.xlabel("Number of feedback connections")
+    plt.ylabel("Rate of neuron")
+
+    
+    errors = np.square(rates-results["rho_0"])
+    slope, intercept, r_value, p_value, std_err = stats.linregress(inh_feedbacks, errors)
+    print("The p value for the regression test for feedback connections" +
+          " and square errors is " + str(p_value))
+    plt.figure()
+    plt.scatter(inh_feedbacks, rates)
+    plt.xlabel("Number of feedback connections")
+    plt.ylabel("Squared error")
+
+    avg_error = np.empty(12)    
+    for idx in range(12):
+        avg_error[idx] = np.average(errors[feedback==idx])
+    
+    plt.figure()
+    plt.plot(range(12), avg_error)

@@ -5,7 +5,7 @@ import os
 import numpy as np
 import matplotlib.pyplot as plt
 
-dataset= "nonreversed_normal_rho0_15Hz"
+dataset = "nonreversed_normal_rho0_7Hz"
 verbose = False
 fullresult_mode = True
 
@@ -227,24 +227,25 @@ if fullresult_mode:
     inh_spike_idxes = results["inh_spike_neuron_idxes"]
     inh_spike_times = results["inh_spike_times"]
     
-#    plt.figure()
-#    plt.plot(inh_spike_times, inh_spike_idxes, '.k')
-#    plt.xlabel('Time [s]')
-#    plt.ylabel('Neuron index')
-#    plt.xlim([prep_time/second, (prep_time)/second +3])
-#    plt.title("Raster plot of firing in inh cells")
-#    plt.savefig(plots_dir + "inh_raster_plot.png", dpi=use_dpi)
-#    
-#    exc_spike_idxes = results["exc_spike_neuron_idxes"]
-#    exc_spike_times = results["exc_spike_times"]
-#    
-#    plt.figure()
-#    plt.plot(exc_spike_times, exc_spike_idxes, '.k')
-#    plt.xlabel('Time [s]')
-#    plt.ylabel('Neuron index')
-#    plt.xlim([prep_time/second, (prep_time)/second +3])
-#    plt.title("Raster plot of firing in exc cells")
-#    plt.savefig(plots_dir + "exc_raster_plot.png", dpi=use_dpi)
+    plt.figure()
+    plt.plot(inh_spike_times, inh_spike_idxes, '.k')
+    plt.xlabel('Time [s]')
+    plt.ylabel('Neuron index')
+    plt.xlim([prep_time/second, (prep_time)/second +3])
+    plt.title("Raster plot of firing in inh cells")
+    plt.savefig(plots_dir + "inh_raster_plot.png", dpi=use_dpi)
+    
+    exc_spike_idxes = results["exc_spike_neuron_idxes"]
+    exc_spike_times = results["exc_spike_times"]
+    
+    plt.figure()
+    plt.plot(exc_spike_times, exc_spike_idxes, '.k')
+    plt.xlabel('Time [s]')
+    plt.ylabel('Neuron index')
+    plt.xlim([prep_time/second, (prep_time)/second +3])
+    plt.ylim([0,100])
+    plt.title("Raster plot of firing in exc cells")
+    plt.savefig(plots_dir + "exc_raster_plot.png", dpi=use_dpi)
     
     
     
@@ -282,7 +283,6 @@ if fullresult_mode:
                 feedback += 1
         inh_feedbacks[idx_neuron] = feedback
         
-        
 
     from scipy import stats
     slope, intercept, r_value, p_value, std_err = stats.linregress(inh_feedbacks, rates)
@@ -290,6 +290,9 @@ if fullresult_mode:
           " and rates is " + str(p_value))
     plt.figure()
     plt.scatter(inh_feedbacks, rates)
+    plt.xlabel("Number of feedback connections")
+    plt.ylabel("Rate of neuron")
+
     
     errors = np.square(rates-results["rho_0"])
     slope, intercept, r_value, p_value, std_err = stats.linregress(inh_feedbacks, errors)
@@ -297,3 +300,60 @@ if fullresult_mode:
           " and square errors is " + str(p_value))
     plt.figure()
     plt.scatter(inh_feedbacks, rates)
+    plt.xlabel("Number of feedback connections")
+    plt.ylabel("Squared error")
+
+    
+    
+    at_least_n_datapoints = 20
+    
+    avg_rate = []
+    SE_rate = []
+    avg_error = []
+    SE_error = []
+    for idx in range(20):
+        n_values = np.sum(inh_feedbacks==idx)
+        if n_values < at_least_n_datapoints:
+            show_n_points = idx
+            break
+        avg_rate.append(np.average(rates[inh_feedbacks==idx]))
+        SE_rate.append(np.std(rates[inh_feedbacks==idx]) / np.sqrt(n_values))
+        avg_error.append(np.average(errors[inh_feedbacks==idx]))
+        SE_error.append(np.std(errors[inh_feedbacks==idx]) / np.sqrt(n_values))
+
+    plt.figure()
+    plt.errorbar(range(show_n_points), avg_rate, yerr=SE_rate)
+    plt.xlim([-1,show_n_points])
+    plt.xlabel("N feedback connections")
+    plt.ylabel("Avg rate")
+    
+    plt.figure()
+    plt.errorbar(range(show_n_points), avg_error, yerr=SE_error)
+    plt.xlim([-1,show_n_points])
+    plt.xlabel("N feedback connections")
+    plt.ylabel("Avg squared error")
+    
+    n_bins = 15
+    rate_hist_mat = np.empty((n_bins, show_n_points))
+    # create one histogram per "column" (per # of feedback connections)
+    for idx in np.arange(show_n_points):
+        rate_hist, rate_bins = np.histogram(rates[inh_feedbacks==idx],
+                                            bins=np.linspace(np.amin(rates), np.amax(rates), n_bins+1))
+        print(rate_hist)
+        print(rate_bins)
+        # normalize:
+        rate_hist = rate_hist.astype(float) / np.amax(rate_hist)
+        rate_hist_mat[:, idx] = rate_hist
+    rate_hist_mat = rate_hist_mat
+    
+    
+    fig, ax = plt.subplots(figsize=(8, 8))
+    heatmap = ax.pcolor(rate_hist_mat, cmap=plt.cm.Blues)
+    ax.set_xticks(np.arange(rate_hist_mat.shape[1])+0.5, minor=False)
+    ax.set_xticklabels(np.arange(show_n_points), minor=False)
+    ax.set_yticks(rate_bins)
+    ax.set_yticklabels(rate_bins, minor=False)
+    ax.set_xlabel("# feedback connections")
+    ax.set_ylabel("rate [Hz]")
+    fig.colorbar(heatmap)
+    plt.savefig(plots_dir + "feedback_rate_hist" + ".png", dpi=use_dpi)
