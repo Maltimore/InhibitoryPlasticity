@@ -1,14 +1,15 @@
-from brian2 import second
+from brian2 import second, ms
 import pickle
 import mytools
 import os
 import numpy as np
 import matplotlib.pyplot as plt
 
-dataset = "nonreversed_rho0_7Hz"
+dataset = "simtime_20000_bg_120_rho0_7Hz"
+#dataset = "fullresult_nonreversed_normal_rho0_7Hz"
 verbose = False
 fullresult_mode = False
-do_histograms = True
+do_histograms = False
 my_fontsize=16
 use_dpi = 400
 
@@ -231,18 +232,38 @@ if fullresult_mode:
             continue
     prep_time = results["prep_time"]
     simtime = results["simtime"]
+ 
+    # RATE OVER TIME
+    # loop over timesteps
+    plot_n_timesteps = 10
+    avg_rates = np.empty(plot_n_timesteps)
+    for timestep in np.arange(1, plot_n_timesteps+1):
+        rates = results["inh_rates"][:,timestep]
+        avg_rates[timestep-1] = np.average(rates)
+    plt.figure()
+    plt.plot(np.arange(1, plot_n_timesteps+1), avg_rates)
+    plt.xlabel("time [s]")
+    plt.ylabel("rate [Hz]")
     
+    spikes, bins = np.histogram(inh_spike_times[inh_spike_times<2005], bins=500)
+    spikes = spikes.astype(float)/10
+
     rho_0 = results["rho_0"]    
     inh_spike_idxes = results["inh_spike_neuron_idxes"]
     inh_spike_times = results["inh_spike_times"]
-    
-    plt.figure()
-    plt.plot(inh_spike_times, inh_spike_idxes, '.k')
-    plt.xlabel('Time [s]')
-    plt.ylabel('Neuron index')
-    plt.xlim([prep_time/second, (prep_time)/second +3])
-    plt.ylim([0,100])
-#    plt.title("Raster plot of firing in inh cells")
+
+    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(8,8))
+    ax1.plot(bins[:-1], spikes, linewidth=.5)
+    ax1.set_ylim([0, 10])
+    ax1.tick_params(labelsize=16)
+    ax1.set_ylabel("Firing rate [Hz]", fontsize=my_fontsize)
+    ax2.plot(inh_spike_times, inh_spike_idxes, '.k', markersize=2)
+    ax2.set_xlabel('Time [s]', fontsize=my_fontsize)
+    ax2.set_ylabel('Neuron index', fontsize=my_fontsize)
+    ax2.set_xlim([prep_time/second, (prep_time)/second +5])
+    ax2.set_ylim([0,100])
+    ax2.tick_params(labelsize=16)
+#    ax2.title("Raster plot of firing in inh cells")
     plt.savefig(plots_dir + "inh_raster_plot_rho0_" + str(rho_0) + "Hz.png",
                 dpi=use_dpi)
     
@@ -373,17 +394,7 @@ if fullresult_mode:
     ax.hist(rates, bins=15)
     ax.set_xlabel("Firing rate [Hz]", fontsize=my_fontsize)
     ax.set_ylabel("# of inhibitory cells", fontsize=my_fontsize)
+    ax.tick_params(labelsize=my_fontsize)
 #    ax.set_title("Rate histogram of inhibitory cells")
     plt.savefig(plots_dir + "inh_rate_histogram_rho0_" + str(rho_0) + "Hz.png", dpi=use_dpi)
     
-    # RATE OVER TIME
-    # loop over timesteps
-    plot_n_timesteps = 299
-    avg_rates = np.empty(plot_n_timesteps)
-    for timestep in np.arange(1, plot_n_timesteps+1):
-        rates = results["inh_rates"][:,timestep]
-        avg_rates[timestep-1] = np.average(rates)
-    plt.figure()
-    plt.plot(np.arange(1, plot_n_timesteps+1), avg_rates)
-    plt.xlabel("time [s]")
-    plt.ylabel("rate [Hz]")
