@@ -5,12 +5,12 @@ import os
 import numpy as np
 import matplotlib.pyplot as plt
 
-dataset = "simtime_20000_bg_120_rho0_7Hz"
+dataset = "simtime_20000_nonreversed_rho0_15Hz"
 #dataset = "fullresult_nonreversed_normal_rho0_7Hz"
 verbose = False
 fullresult_mode = False
 do_histograms = False
-my_fontsize=16
+my_fontsize=20
 use_dpi = 400
 
 program_dir = os.getcwd()
@@ -131,13 +131,20 @@ def plot_heatmap(data, all_sigma_s, all_sigma_c, invert=False, title="",
     # put the major ticks at the middle of each cell
     ax.set_xticks(np.arange(data.shape[0])+0.5, minor=False)
     ax.set_yticks(np.arange(data.shape[1])+0.5, minor=False)
-    ax.set_xticklabels(all_sigma_c, minor=False)
-    ax.set_yticklabels(all_sigma_s, minor=False)
+    xticks = list(all_sigma_c.astype(int)[:-1])
+    xticks.append("inf")
+    yticks = list(all_sigma_s.astype(int)[:-1])
+    yticks.append("inf")
+
+    ax.set_xticklabels(xticks, minor=False)
+    ax.set_yticklabels(yticks, minor=False)
     ax.set_xlabel("connectivity spread $\sigma_c$", fontsize=fontsize)
     ax.set_ylabel("sensor width $\sigma_s$", fontsize=fontsize)
+    ax.tick_params(labelsize=16)
 #    if title != "":
 #        ax.set_title(title)
-    fig.colorbar(heatmap)
+    cb = fig.colorbar(heatmap)
+    cb.ax.tick_params(labelsize=16)
     plt.savefig(plots_dir + title + "_rho0_" + str(rho_0) + "Hz.png", dpi=use_dpi)
     return ax
 
@@ -147,18 +154,18 @@ if not fullresult_mode:
                       title="Sparseness")
     # Squared error plot
     ax = plot_heatmap(sq_error_mat, all_sigma_s, all_sigma_c,
-                      title="Squared error", fontsize=my_fontsize)
+                      title="Squared_error", fontsize=my_fontsize)
     # Average rates plot
     ax = plot_heatmap(avg_rate_mat, all_sigma_s, all_sigma_c,
-                      title="Average rates", fontsize=my_fontsize)
+                      title="Average_rates", fontsize=my_fontsize)
     # Min weights plot
     ax = plot_heatmap(n_min_weights, all_sigma_s, all_sigma_c,
-                      title="Number of minimum weights", fontsize=my_fontsize)
+                      title="Number_of_minimum_weights", fontsize=my_fontsize)
     # Max weights plot
     ax = plot_heatmap(n_max_weights, all_sigma_s, all_sigma_c,
-                      title="Number of max weights", fontsize=my_fontsize)
+                      title="Number_of_max_weights", fontsize=my_fontsize)
 
-if not fullresult_mode and do_histograms:
+
     # Firing rate per diffusion
     rate_per_diffusion = np.ma.average(avg_rate_mat, axis=1)
     fig, ax = plt.subplots(figsize=(8, 8))
@@ -172,6 +179,7 @@ if not fullresult_mode and do_histograms:
     ax.set_ylim([np.amin(rate_per_diffusion)-1, np.amax(rate_per_diffusion)+1])
     plt.savefig(plots_dir + "Rate_per_diffusion_rho0_" + str(rho_0) + "Hz.png", dpi=600)
     
+if not fullresult_mode and do_histograms:    
     # Weight histograms
     fig, axes = plt.subplots(n_sigma_c, n_sigma_s, figsize=(15, 15),
                              sharex=True, sharey=True)
@@ -245,7 +253,7 @@ if fullresult_mode:
     plt.xlabel("time [s]")
     plt.ylabel("rate [Hz]")
     
-    spikes, bins = np.histogram(inh_spike_times[inh_spike_times<2005], bins=500)
+    spikes, bins = np.histogram(inh_spike_times[inh_spike_times<prep_time/secod + 5], bins=500)
     spikes = spikes.astype(float)/10
 
     rho_0 = results["rho_0"]    
