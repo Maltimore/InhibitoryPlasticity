@@ -5,10 +5,11 @@ import os
 import numpy as np
 import matplotlib.pyplot as plt
 
-dataset = "simtime_20000_nonreversed_rho0_15Hz"
+dataset = "fullresult_20000s_rho0_7Hz"
 #dataset = "fullresult_nonreversed_normal_rho0_7Hz"
 verbose = False
-fullresult_mode = False
+fullresult_mode = True
+connectivity_computations = False
 do_histograms = False
 my_fontsize=20
 use_dpi = 400
@@ -151,7 +152,7 @@ def plot_heatmap(data, all_sigma_s, all_sigma_c, invert=False, title="",
 if not fullresult_mode:
     # Sparseness plot
     ax = plot_heatmap(sparseness_mat, all_sigma_s, all_sigma_c, invert=True,
-                      title="Sparseness")
+                      title="Sparseness", fontsize=my_fontsize)
     # Squared error plot
     ax = plot_heatmap(sq_error_mat, all_sigma_s, all_sigma_c,
                       title="Squared_error", fontsize=my_fontsize)
@@ -238,6 +239,12 @@ if fullresult_mode:
                 print("To restart the simulation, remember that the qsub index is " +
                       str(table_idx + 1))
             continue
+
+     
+    rho_0 = results["rho_0"]    
+    inh_spike_idxes = results["inh_spike_neuron_idxes"]
+    inh_spike_times = results["inh_spike_times"]
+
     prep_time = results["prep_time"]
     simtime = results["simtime"]
  
@@ -253,7 +260,7 @@ if fullresult_mode:
     plt.xlabel("time [s]")
     plt.ylabel("rate [Hz]")
     
-    spikes, bins = np.histogram(inh_spike_times[inh_spike_times<prep_time/secod + 5], bins=500)
+    spikes, bins = np.histogram(inh_spike_times[inh_spike_times<prep_time/second + 5], bins=500)
     spikes = spikes.astype(float)/10
 
     rho_0 = results["rho_0"]    
@@ -292,7 +299,7 @@ if fullresult_mode:
    
 
 # fullresult mode
-if fullresult_mode:
+if connectivity_computations and fullresult_mode:
     conn_filename = mytools._create_connectivity_filename("inh_to_exc",
                                                       results["sigma_c"],
                                                       1000,
