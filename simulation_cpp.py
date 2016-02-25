@@ -138,7 +138,7 @@ if user_params[0] == "parameter_file_requested":
 print("I'm running a simulation with sigma_s = " + str(sigma_s) + \
       " and sigma_c = " + str(sigma_c), flush=True)
 
-np.random.seed(1337)
+#np.random.seed(1337)
 use_maltes_algorithm = False
 use_owens_algorithm = not use_maltes_algorithm
 params["cpp_standalone"] = use_owens_algorithm
