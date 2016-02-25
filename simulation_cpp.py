@@ -62,11 +62,11 @@ params = { \
     "er" : -80*mV              , # Inhibitory reversal potential
     "vt" : -50.*mV             , # Spiking threshold
     "memc" : 200.0*pfarad      , # Membrane capacitance
-    "exc_bg_current" : 200*pA  , # External current
-    "inh_bg_current" : 200*pA  , # External current
+    "exc_bg_current" : 120*pA  , # External current
+    "inh_bg_current" : 120*pA  , # External current
     "fixed_in_degree" : .02    , # amount of incoming connections
     "eta" : .01                , # Learning rate
-    "rho_0" : 7                , # Target firing rate
+    "rho_0" : 15                , # Target firing rate
     "scaling_f" : scaling_f    , # scaling factor if not using 10000 neurons   
     "w_ee" : initial_exc_w*nS  , # exc-exc weight
     "w_ie" : initial_exc_w*nS  , # exc-inh weight
@@ -74,7 +74,7 @@ params = { \
     "w_ei" : initial_inh_w     , # starting weight for the inh to exc connections
     "wmin" : float(0)          , # minimum permissible weight
     "wmax" : 100*initial_inh_w , # maximum permissible weight
-    "prep_time" : 2000*second  , # give Network time to stabilize
+    "prep_time" : 20000*second  , # give Network time to stabilize
     "simtime" :  300.001*second, # Simulation time
     "dt" : .1*ms               , # Simulation time step
     "sigma_c" : 200            , # connectivity spread
