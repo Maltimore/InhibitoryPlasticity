@@ -10,7 +10,7 @@ import signal
 imp.reload(mytools)
 start_scope()
 
-print("My pid is: " + str(os.getpid()), flush=True) 
+print("My pid is: " + str(os.getpid()), flush=True)
 sys.stdout.flush()
 def signal_term_handler(signal, frame):
     print("Process with index " + str(sys.argv[1]) + " caught kill signal!")
@@ -50,7 +50,7 @@ params = { \
     "Ntot": Ntot               , # Total number of neurons
     "NE" :  NE                 , # Number of excitatory cells
     "NI" :  NI                 , # Number of inhibitory cells
-    "x_NE" :  x_NE             , # spacing of exc cells    
+    "x_NE" :  x_NE             , # spacing of exc cells
     "x_NI" :  x_NI             , # spacing of inh cells
     "tau_ampa" : 5.0*ms        , # Glutamatergic synaptic time constant
     "tau_gaba" : 10.0*ms       , # GABAergic synaptic time constant
@@ -65,16 +65,16 @@ params = { \
     "exc_bg_current" : 120*pA  , # External current
     "inh_bg_current" : 120*pA  , # External current
     "fixed_in_degree" : .02    , # amount of incoming connections
-    "eta" : .01                , # Learning rate
-    "rho_0" : 15                , # Target firing rate
-    "scaling_f" : scaling_f    , # scaling factor if not using 10000 neurons   
+    "eta" : 0.01               , # Learning rate
+    "rho_0" : 15               , # Target firing rate
+    "scaling_f" : scaling_f    , # scaling factor if not using 10000 neurons
     "w_ee" : initial_exc_w*nS  , # exc-exc weight
     "w_ie" : initial_exc_w*nS  , # exc-inh weight
     "w_ii" : initial_inh_w*nS  , # inh-inh weight
     "w_ei" : initial_inh_w     , # starting weight for the inh to exc connections
     "wmin" : float(0)          , # minimum permissible weight
     "wmax" : 100*initial_inh_w , # maximum permissible weight
-    "prep_time" : 20000*second  , # give Network time to stabilize
+    "prep_time": 20000*second  , # give Network time to stabilize
     "simtime" :  300.001*second, # Simulation time
     "dt" : .1*ms               , # Simulation time step
     "sigma_c" : 200            , # connectivity spread
@@ -84,15 +84,14 @@ params = { \
     "do_run" : True            , # whether the simulation should actually run
     "program_dir" : os.getcwd(), # working directory
     "save_connectivity_to_file": True,   # whether to load connectivity matrix
-    "load_connectivity_from_file": True,
-    "simulation_name": "default_name"} #whether to save connectivity matrix
-
+    "load_connectivity_from_file": True, #whether to save connectivity matrix
+    "simulation_name": "default_name"}
 
 if __name__ == "__main__":
     user_params = mytools.parse_argvs(sys.argv, neuron_scaling)
     if user_params[0] == "parameter_file_requested":
         params["simulation_name"] = user_params[2]
-        print("Parameter file requested.")         
+        print("Parameter file requested.")
     else:
         params["sigma_s"] = user_params[0]
         params["sigma_c"] = user_params[1]
@@ -103,7 +102,7 @@ if __name__ == "__main__":
 # extract variables from the dictionary to the global namespace
 for key,val in params.items():
     exec(key + '=val')
-    
+
 # adding parameters to be saved
 resultspath = program_dir + "/results/fewresults" + "/" + simulation_name + \
               "_rho0_" + str(rho_0) + "Hz/"
@@ -126,7 +125,7 @@ results["wmax"] = params["wmax"]
 results["eta"] = params["eta"]
 results["lookuptable"] = mytools.lookuptable(neuron_scaling)
 results["neuron_scaling"] = neuron_scaling
-         
+
 if user_params[0] == "parameter_file_requested":
     print("Saving parameter file")
     if not os.path.exists(resultspath):
@@ -164,7 +163,7 @@ Pe = neurons[:NE]
 Pi = neurons[NE:]
 Pe.bgcurrent = exc_bg_current
 Pi.bgcurrent = inh_bg_current
-neurons.v = np.random.uniform(el, vt-2*mV, len(neurons))*volt 
+neurons.v = np.random.uniform(el, vt-2*mV, len(neurons))*volt
 
 ### SYNAPSES ##################################################################
 print("Creating nonplastic synapses..")
@@ -176,8 +175,8 @@ connectivity_mat = mytools.create_connectivity_mat(
                                         x_pre = x_NE,
                                         x_post = x_NE,
                                         fixed_in_degree = fixed_in_degree,
-                                        save_to_file = True,
-                                        reload_from_file = True,
+                                        save_to_file = False,
+                                        reload_from_file = False,
                                         filename = "exc_to_exc",
                                         dir_name = "connectivity_matrices")
 con_ee = Synapses(Pe, Pe, pre="""g_ampa += w_ee""", name="con_ee")
@@ -191,8 +190,8 @@ connectivity_mat = mytools.create_connectivity_mat(
                                         x_pre = x_NE,
                                         x_post = x_NI,
                                         fixed_in_degree = fixed_in_degree,
-                                        save_to_file = True,
-                                        reload_from_file = True,
+                                        save_to_file = False,
+                                        reload_from_file = False,
                                         filename = "exc_to_inh",
                                         dir_name = "connectivity_matrices")
 con_ie = Synapses(Pe, Pi, pre='g_ampa += w_ie', name="con_ie")
@@ -206,8 +205,8 @@ connectivity_mat = mytools.create_connectivity_mat(
                                         x_pre = x_NI,
                                         x_post = x_NI,
                                         fixed_in_degree = fixed_in_degree,
-                                        save_to_file = True,
-                                        reload_from_file = True,
+                                        save_to_file = False,
+                                        reload_from_file = False,
                                         filename = "inh_to_inh",
                                         dir_name = "connectivity_matrices")
 con_ii = Synapses(Pi, Pi, pre='g_gaba += w_ii', name="con_ii")
@@ -221,8 +220,8 @@ ei_conn_mat = mytools.create_connectivity_mat(
                                         x_pre = x_NI,
                                         x_post = x_NE,
                                         fixed_in_degree = fixed_in_degree,
-                                        save_to_file = True,
-                                        reload_from_file = True,
+                                        save_to_file = False,
+                                        reload_from_file = False,
                                         filename = "inh_to_exc",
                                         dir_name = "connectivity_matrices")
 con_ei = Synapses(Pi, Pe,
@@ -247,22 +246,22 @@ rateMon = StateMonitor(Pi, "A", record=True,
                        dt=rate_interval)
 inhSpikeMon = SpikeMonitor(Pi)
 excSpikeMon = SpikeMonitor(Pe)
-              
+
 ### NETWORK ###################################################################
 monitors =     {"inhWeightMon": inhWeightMon,
                 "rateMon": rateMon,
                 "inhSpikeMon": inhSpikeMon,
                 "excSpikeMon": excSpikeMon}
-                
+
 network_objs = {"neurons": neurons,
                 "Pe": Pe,
                 "Pi": Pi,
                 "con_ee": con_ee,
                 "con_ie": con_ie,
-                "con_ii": con_ii, 
+                "con_ii": con_ii,
                 "con_ei": con_ei,
                 "monitors": monitors}
-    
+
 ### SIMULATION ################################################################
 print("Starting run function..")
 if use_owens_algorithm:
@@ -274,7 +273,7 @@ print("Done simulating.")
 
 ### SAVE RESULTS ##############################################################
 ### When saving values to disk, we are not taking into account Brian units.
-### Threfore we are assigning standard units so that when recovering the 
+### Threfore we are assigning standard units so that when recovering the
 ### saved files, one knows which units to assign to them.
 ### time: second
 ### weights: nS
@@ -292,7 +291,7 @@ results["all_inh_weights"] = network_objs["con_ei"].w[:]
 if not os.path.exists(resultspath):
     os.makedirs(resultspath)
 pickle.dump(results, open(resultspath + "/" + resultfile, "wb"))
-                          
+
 
 results["inh_spike_times"] = network_objs["inhSpikeMon"].t/second
 results["inh_spike_neuron_idxes"] = network_objs["inhSpikeMon"].i[:]
