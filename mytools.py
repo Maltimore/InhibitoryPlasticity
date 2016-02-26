@@ -245,8 +245,13 @@ def create_connectivity_mat(sigma_c = 500,
 
 def compute_sparseness(rates):    
     NI = len(rates)
-    sparseness = ((np.sum(rates)/NI)**2) / (np.sum(rates**2)/NI)
-    return sparseness
+    sum_of_squared_rates = np.sum(rates**2)
+    if sum_of_squared_rates != 0:
+        return ((np.sum(rates)/NI)**2) / (sum_of_squared_rates/NI)
+    else:
+        # if all rates were zero, return 1 (absolutely not sparse)
+        return 1
+    
     
     
 def run_cpp_standalone(params, network_objs):

@@ -5,10 +5,10 @@ import os
 import numpy as np
 import matplotlib.pyplot as plt
 
-dataset = "fullresult_20000s_rho0_7Hz"
+dataset = "no_plasticity_bg_200_rho0_15Hz"
 #dataset = "fullresult_nonreversed_normal_rho0_7Hz"
 verbose = False
-fullresult_mode = True
+fullresult_mode = False
 connectivity_computations = False
 do_histograms = False
 my_fontsize=20
