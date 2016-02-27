@@ -5,12 +5,13 @@ import os
 import numpy as np
 import matplotlib.pyplot as plt
 
-dataset = "no_plasticity_bg_200_rho0_15Hz"
+
+dataset = "simtime_20000_bg_200_rho0_15Hz"
 #dataset = "fullresult_nonreversed_normal_rho0_7Hz"
 verbose = False
 fullresult_mode = False
 connectivity_computations = False
-do_histograms = False
+do_histograms = True
 my_fontsize=20
 use_dpi = 400
 
@@ -123,12 +124,23 @@ n_min_weights = np.reshape(n_min_weights, (n_sigma_s, n_sigma_c))
 n_max_weights = np.reshape(n_max_weights, (n_sigma_s, n_sigma_c))
 
 def plot_heatmap(data, all_sigma_s, all_sigma_c, invert=False, title="",
-                 fontsize=16):
+                 fontsize=16, colors="blues"):
+    if colors == "blues":
+        if invert:
+            use_colors = plt.cm.Blues_r
+        else:
+            use_colors = plt.cm.Blues
+    elif colors == "reds":
+        if invert:
+            use_colors = plt.cm.Reds_r
+        else:
+            use_colors = plt.cm.Reds
+        
     fig, ax = plt.subplots(figsize=(8, 8))
     if invert:
-        heatmap = ax.pcolor(data, cmap=plt.cm.Blues_r)
+        heatmap = ax.pcolor(data, cmap=use_colors)
     else:
-        heatmap = ax.pcolor(data, cmap=plt.cm.Blues)
+        heatmap = ax.pcolor(data, cmap=use_colors)
     # put the major ticks at the middle of each cell
     ax.set_xticks(np.arange(data.shape[0])+0.5, minor=False)
     ax.set_yticks(np.arange(data.shape[1])+0.5, minor=False)
@@ -158,7 +170,7 @@ if not fullresult_mode:
                       title="Squared_error", fontsize=my_fontsize)
     # Average rates plot
     ax = plot_heatmap(avg_rate_mat, all_sigma_s, all_sigma_c,
-                      title="Average_rates", fontsize=my_fontsize)
+                      title="Average_rates", fontsize=my_fontsize, colors="reds")
     # Min weights plot
     ax = plot_heatmap(n_min_weights, all_sigma_s, all_sigma_c,
                       title="Number_of_minimum_weights", fontsize=my_fontsize)
@@ -291,7 +303,7 @@ if fullresult_mode:
     plt.ylabel('Neuron index')
     plt.xlim([prep_time/second, (prep_time)/second +3])
     plt.ylim([0,100])
-#    plt.title("Raster plot of firing in exc cells")
+    plt.title("Raster plot of firing in exc cells")
     plt.savefig(plots_dir + "exc_raster_plot_rho0_" + str(rho_0) + "Hz.png", dpi=use_dpi)
     
     
