@@ -6,7 +6,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 
-dataset = "simtime_20000_bg_200_rho0_15Hz"
+dataset = "simtime_20000_bg_120_rho0_4Hz"
 #dataset = "fullresult_nonreversed_normal_rho0_7Hz"
 verbose = False
 fullresult_mode = False
@@ -135,7 +135,7 @@ def plot_heatmap(data, all_sigma_s, all_sigma_c, invert=False, title="",
             use_colors = plt.cm.Reds_r
         else:
             use_colors = plt.cm.Reds
-        
+
     fig, ax = plt.subplots(figsize=(8, 8))
     if invert:
         heatmap = ax.pcolor(data, cmap=use_colors)
@@ -191,8 +191,8 @@ if not fullresult_mode:
 #    ax.set_title("Rate per diffusion")
     ax.set_ylim([np.amin(rate_per_diffusion)-1, np.amax(rate_per_diffusion)+1])
     plt.savefig(plots_dir + "Rate_per_diffusion_rho0_" + str(rho_0) + "Hz.png", dpi=600)
-    
-if not fullresult_mode and do_histograms:    
+
+if not fullresult_mode and do_histograms:
     # Weight histograms
     fig, axes = plt.subplots(n_sigma_c, n_sigma_s, figsize=(15, 15),
                              sharex=True, sharey=True)
@@ -209,9 +209,9 @@ if not fullresult_mode and do_histograms:
                 ax.set_xlabel(all_sigma_c[sigma_c_idx], fontsize=18)
     plt.tight_layout()
     plt.savefig(plots_dir + "Weight histograms_rho0_" + str(rho_0) + "Hz.png", dpi=use_dpi)
-    
-    
-    
+
+
+
     # Rate histograms
     fig, axes = plt.subplots(n_sigma_c, n_sigma_s, figsize=(15, 15),
                              sharex=True, sharey=True)
@@ -233,7 +233,7 @@ if not fullresult_mode and do_histograms:
 if fullresult_mode:
     for table_idx in np.arange(len(lookuptable)):
         sigma_s, sigma_c = lookuptable[table_idx,:]
-    
+
         resultfile = "sigma_s_" + str(sigma_s) + "_" + \
                      "sigma_c_" + str(sigma_c) + "_" + \
                      "prep_" + str(int(prep_time)) + "_seconds"
@@ -242,7 +242,7 @@ if fullresult_mode:
             results = pickle.load(open(results_dir + "/" + resultfile, "rb"))
             results["sigma_s"] = sigma_s
             results["sigma_c"] = sigma_c
-            print("Loaded full result dataset.")            
+            print("Loaded full result dataset.")
         except:
             if verbose:
                 print("Failed for table index " + str(table_idx) +
@@ -252,14 +252,14 @@ if fullresult_mode:
                       str(table_idx + 1))
             continue
 
-     
-    rho_0 = results["rho_0"]    
+
+    rho_0 = results["rho_0"]
     inh_spike_idxes = results["inh_spike_neuron_idxes"]
     inh_spike_times = results["inh_spike_times"]
 
     prep_time = results["prep_time"]
     simtime = results["simtime"]
- 
+
     # RATE OVER TIME
     # loop over timesteps
     plot_n_timesteps = 10
@@ -271,11 +271,11 @@ if fullresult_mode:
     plt.plot(np.arange(1, plot_n_timesteps+1), avg_rates)
     plt.xlabel("time [s]")
     plt.ylabel("rate [Hz]")
-    
+
     spikes, bins = np.histogram(inh_spike_times[inh_spike_times<prep_time/second + 5], bins=500)
     spikes = spikes.astype(float)/10
 
-    rho_0 = results["rho_0"]    
+    rho_0 = results["rho_0"]
     inh_spike_idxes = results["inh_spike_neuron_idxes"]
     inh_spike_times = results["inh_spike_times"]
 
@@ -293,10 +293,10 @@ if fullresult_mode:
 #    ax2.title("Raster plot of firing in inh cells")
     plt.savefig(plots_dir + "inh_raster_plot_rho0_" + str(rho_0) + "Hz.png",
                 dpi=use_dpi)
-    
+
     exc_spike_idxes = results["exc_spike_neuron_idxes"]
     exc_spike_times = results["exc_spike_times"]
-    
+
     plt.figure()
     plt.plot(exc_spike_times, exc_spike_idxes, '.k')
     plt.xlabel('Time [s]')
@@ -305,10 +305,10 @@ if fullresult_mode:
     plt.ylim([0,100])
     plt.title("Raster plot of firing in exc cells")
     plt.savefig(plots_dir + "exc_raster_plot_rho0_" + str(rho_0) + "Hz.png", dpi=use_dpi)
-    
-    
-    
-   
+
+
+
+
 
 # fullresult mode
 if connectivity_computations and fullresult_mode:
@@ -331,17 +331,17 @@ if connectivity_computations and fullresult_mode:
         # loop over all inhibitory neurons
         feedback = 0
         idx_neurons_projections = i_to_e[i_to_e[:,0]==idx_neuron, 1]
-        
+
         for post_neuron in idx_neurons_projections:
             # loop over all the connections that the current index neuron has
-            
+
             post_neurons_projections = e_to_i[e_to_i[:,0]==post_neuron, 1]
             if idx_neuron in post_neurons_projections:
                 # if the current postsynaptic neuron has a connection back to
                 # the original neuron, increment feedback
                 feedback += 1
         inh_feedbacks[idx_neuron] = feedback
-        
+
 
     from scipy import stats
     slope, intercept, r_value, p_value, std_err = stats.linregress(inh_feedbacks, rates)
@@ -352,7 +352,7 @@ if connectivity_computations and fullresult_mode:
     plt.xlabel("Number of feedback connections")
     plt.ylabel("Rate of neuron")
 
-    
+
     errors = np.square(rates-results["rho_0"])
     slope, intercept, r_value, p_value, std_err = stats.linregress(inh_feedbacks, errors)
     print("The p value for the regression test for feedback connections" +
@@ -362,10 +362,10 @@ if connectivity_computations and fullresult_mode:
     plt.xlabel("Number of feedback connections")
     plt.ylabel("Squared error")
 
-    
-    
+
+
     at_least_n_datapoints = 20
-    
+
     avg_rate = []
     SE_rate = []
     avg_error = []
@@ -385,13 +385,13 @@ if connectivity_computations and fullresult_mode:
     plt.xlim([-1,show_n_points])
     plt.xlabel("N feedback connections")
     plt.ylabel("Avg rate")
-    
+
     plt.figure()
     plt.errorbar(range(show_n_points), avg_error, yerr=SE_error)
     plt.xlim([-1,show_n_points])
     plt.xlabel("N feedback connections")
     plt.ylabel("Avg squared error")
-    
+
     n_bins = 15
     rate_hist_mat = np.empty((n_bins, show_n_points))
     # create one histogram per "column" (per # of feedback connections)
@@ -402,8 +402,8 @@ if connectivity_computations and fullresult_mode:
         rate_hist = rate_hist.astype(float) / np.amax(rate_hist)
         rate_hist_mat[:, idx] = rate_hist
     rate_hist_mat = rate_hist_mat
-    
-    
+
+
     fig, ax = plt.subplots(figsize=(8, 8))
     heatmap = ax.pcolor(rate_hist_mat, cmap=plt.cm.Blues)
     ax.set_xticks(np.arange(rate_hist_mat.shape[1])+0.5, minor=False)
@@ -415,8 +415,8 @@ if connectivity_computations and fullresult_mode:
     ax.set_ylabel("rate [Hz]")
     fig.colorbar(heatmap)
     plt.savefig(plots_dir + "feedback_rate_hist" + ".png", dpi=use_dpi)
-    
-    # RATE HISTOGRAM    
+
+    # RATE HISTOGRAM
     fix, ax = plt.subplots(figsize=(8, 8))
     ax.hist(rates, bins=15)
     ax.set_xlabel("Firing rate [Hz]", fontsize=my_fontsize)
@@ -424,4 +424,4 @@ if connectivity_computations and fullresult_mode:
     ax.tick_params(labelsize=my_fontsize)
 #    ax.set_title("Rate histogram of inhibitory cells")
     plt.savefig(plots_dir + "inh_rate_histogram_rho0_" + str(rho_0) + "Hz.png", dpi=use_dpi)
-    
+
