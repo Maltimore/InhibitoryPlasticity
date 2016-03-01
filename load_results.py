@@ -6,12 +6,12 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 
-dataset = "simtime_20000_bg_120_rho0_4Hz"
-#dataset = "fullresult_nonreversed_normal_rho0_7Hz"
+dataset = "no_plasticity_bg_120_big_w_rho0_3Hz"
 verbose = False
 fullresult_mode = False
 connectivity_computations = False
-do_histograms = True
+do_histograms = False
+no_plasticity = True
 my_fontsize=20
 use_dpi = 400
 
@@ -142,20 +142,18 @@ def plot_heatmap(data, all_sigma_s, all_sigma_c, invert=False, title="",
     else:
         heatmap = ax.pcolor(data, cmap=use_colors)
     # put the major ticks at the middle of each cell
-    ax.set_xticks(np.arange(data.shape[0])+0.5, minor=False)
-    ax.set_yticks(np.arange(data.shape[1])+0.5, minor=False)
+    ax.set_xticks(np.arange(data.shape[1])+0.5, minor=False)
+    ax.set_yticks(np.arange(data.shape[0])+0.5, minor=False)
     xticks = list(all_sigma_c.astype(int)[:-1])
     xticks.append("inf")
     yticks = list(all_sigma_s.astype(int)[:-1])
     yticks.append("inf")
-
     ax.set_xticklabels(xticks, minor=False)
     ax.set_yticklabels(yticks, minor=False)
     ax.set_xlabel("connectivity spread $\sigma_c$", fontsize=fontsize)
     ax.set_ylabel("sensor width $\sigma_s$", fontsize=fontsize)
     ax.tick_params(labelsize=16)
-#    if title != "":
-#        ax.set_title(title)
+
     cb = fig.colorbar(heatmap)
     cb.ax.tick_params(labelsize=16)
     plt.savefig(plots_dir + title + "_rho0_" + str(rho_0) + "Hz.png", dpi=use_dpi)
@@ -178,7 +176,26 @@ if not fullresult_mode:
     ax = plot_heatmap(n_max_weights, all_sigma_s, all_sigma_c,
                       title="Number_of_max_weights", fontsize=my_fontsize)
 
-
+    # Special plots for no plasticity simulations
+#    if no_plasticity:
+#        sparseness_mat_avg = np.atleast_2d(np.average(sparseness_mat, axis=0))
+##        ax = plot_heatmap(sparseness_mat_avg, np.array([]), all_sigma_c, invert=True,
+##                      title="Sparseness_averaged", fontsize=my_fontsize)
+#        fig, ax = plt.subplots(figsize=(8,4))
+#        heatmap = ax.pcolor(sparseness_mat_avg, cmap=plt.cm.Blues_r)
+#        ax.set_xticks(np.arange(sparseness_mat_avg.shape[1])+0.5, minor=False)        
+#        xticks = list(all_sigma_c.astype(int)[:-1])
+#        xticks.append("inf")
+#        ax.set_xticklabels(xticks, minor=False)
+#        ax.set_yticklabels([])
+#        cb = fig.colorbar(heatmap)
+#        cb.ax.tick_params(labelsize=16)
+#        plt.savefig(plots_dir + "Sparseness_averaged.png", dpi=use_dpi)
+        
+        
+        
+        
+        
     # Firing rate per diffusion
     rate_per_diffusion = np.ma.average(avg_rate_mat, axis=1)
     fig, ax = plt.subplots(figsize=(8, 8))
